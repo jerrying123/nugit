@@ -84,3 +84,5 @@ temp/
 
 # --- Docker / local data (optional) ---
 *.rdb
+
+*/node_modules/
