@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from stackpr.auth.dependencies import optional_user_token, require_user_token
 from stackpr.github.app_auth import get_anonymous_github_client, get_user_client
-from stackpr.github.contents import fetch_nugit_stack_document, stack_for_pr
+from stackpr.github.contents import fetch_nugit_stack_document_for_pr, stack_for_pr
 from stackpr.queue import enqueue_absorb_to_tip, enqueue_rebase_cascade
 
 router = APIRouter()
@@ -34,11 +34,17 @@ async def get_stack_for_pr(
 ):
     """Resolve stack from `.nugit/stack.json` containing this PR."""
     with _github_client(user_token) as client:
-        doc = fetch_nugit_stack_document(client, owner, repo, ref=ref)
+        doc, stack_ref = fetch_nugit_stack_document_for_pr(
+            client, owner, repo, number, explicit_ref=ref
+        )
     if doc is None:
         raise HTTPException(
             status_code=404,
-            detail="No valid .nugit/stack.json found for this repository/ref",
+            detail=(
+                "No valid .nugit/stack.json found (tried default branch, this PR's "
+                "head/base, then open PR head branches). Put the file on `main` or pass "
+                "`?ref=<branch>`."
+            ),
         )
     result = stack_for_pr(doc, number)
     if result is None:
@@ -47,6 +53,7 @@ async def get_stack_for_pr(
     return {
         "repo_full_name": _doc.repo_full_name,
         "pr": number,
+        "stack_json_ref": stack_ref,
         "prs": prs,
         "resolution_contexts": [
             {
@@ -110,9 +117,18 @@ async def get_next_mergeable(
 ):
     """Whether the next PR in `.nugit` order is mergeable (GitHub mergeable_state)."""
     with _github_client(user_token) as client:
-        doc = fetch_nugit_stack_document(client, owner, repo, ref=ref)
+        doc, _stack_ref = fetch_nugit_stack_document_for_pr(
+            client, owner, repo, number, explicit_ref=ref
+        )
     if doc is None:
-        raise HTTPException(status_code=404, detail="Stack not found for PR")
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "No valid .nugit/stack.json found (tried default branch, this PR's "
+                "head/base, then open PR head branches). Put the file on `main` or pass "
+                "`?ref=<branch>`."
+            ),
+        )
     prs = sorted(doc.prs, key=lambda item: item.position)
     current_idx = next((idx for idx, item in enumerate(prs) if item.pr_number == number), None)
     if current_idx is None or current_idx + 1 >= len(prs):

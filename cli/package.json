@@ -1,16 +1,20 @@
 {
-  "name": "stackpr-cli",
+  "name": "nugit-cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "stackpr": "./src/stackpr.js"
+    "nugit": "./src/nugit.js"
   },
   "scripts": {
     "test": "vitest run"
   },
   "dependencies": {
-    "commander": "^12.1.0"
+    "boxen": "^8.0.1",
+    "chalk": "^5.6.2",
+    "commander": "^12.1.0",
+    "ink": "^6.8.0",
+    "react": "^19.2.4"
   },
   "devDependencies": {
     "vitest": "^2.1.8"

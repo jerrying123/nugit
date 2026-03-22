@@ -67,7 +67,7 @@ class StackTreeProvider {
 }
 
 function token() {
-  return process.env.STACKPR_USER_TOKEN || "";
+  return process.env.NUGIT_USER_TOKEN || process.env.STACKPR_USER_TOKEN || "";
 }
 
 function register(context, command, handler) {
@@ -146,7 +146,7 @@ function activate(context) {
     const t = await getSecretToken(context);
     if (!t) {
       vscode.window.showErrorMessage(
-        "Set STACKPR_USER_TOKEN or run StackPR: Save PAT to Secret Storage."
+        "Set NUGIT_USER_TOKEN (or STACKPR_USER_TOKEN) or run StackPR: Save PAT to Secret Storage."
       );
       return;
     }

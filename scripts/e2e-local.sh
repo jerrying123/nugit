@@ -3,14 +3,15 @@ set -euo pipefail
 
 # End-to-end local runner (stateless API + Redis optional for workers).
 # Usage:
-#   STACKPR_USER_TOKEN=... ./scripts/e2e-local.sh
+#   NUGIT_USER_TOKEN=... ./scripts/e2e-local.sh
+#   (or STACKPR_USER_TOKEN for backward compatibility)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 API_BASE="${API_BASE:-http://localhost:3001/api}"
-STACKPR_USER_TOKEN="${STACKPR_USER_TOKEN:-}"
+TOKEN="${NUGIT_USER_TOKEN:-${STACKPR_USER_TOKEN:-}}"
 
-if [[ -z "${STACKPR_USER_TOKEN}" ]]; then
-  echo "ERROR: STACKPR_USER_TOKEN is required."
+if [[ -z "${TOKEN}" ]]; then
+  echo "ERROR: NUGIT_USER_TOKEN or STACKPR_USER_TOKEN is required."
   exit 1
 fi
 
@@ -37,15 +38,15 @@ echo "==> Health check"
 curl -fsS "http://localhost:3001/health" >/dev/null
 
 echo "==> Validating token"
-curl -fsS -H "Authorization: Bearer ${STACKPR_USER_TOKEN}" \
+curl -fsS -H "Authorization: Bearer ${TOKEN}" \
   "${API_BASE}/auth/me" >/dev/null
 
 echo "==> Listing my PRs"
-curl -fsS -H "Authorization: Bearer ${STACKPR_USER_TOKEN}" \
+curl -fsS -H "Authorization: Bearer ${TOKEN}" \
   "${API_BASE}/account/pulls" >/tmp/stackpr-pulls.json
 
 echo "==> Listing a page of repos (GitHub proxy)"
-curl -fsS -H "Authorization: Bearer ${STACKPR_USER_TOKEN}" \
+curl -fsS -H "Authorization: Bearer ${TOKEN}" \
   "${API_BASE}/github/user/repos?per_page=5&page=1" >/tmp/stackpr-repos.json
 
 echo
@@ -55,7 +56,7 @@ echo "  /tmp/stackpr-pulls.json"
 echo "  /tmp/stackpr-repos.json"
 echo "  /tmp/stackpr-api.log"
 echo
-echo "Stack data: create .nugit/stack.json with the CLI (stackpr stack:init), commit, and push."
+echo "Stack data: create .nugit/stack.json with the CLI (nugit init), commit, and push."
 echo "Then: GET ${API_BASE}/repos/{owner}/{repo}/pr/{number}/stack"
 echo
 echo "Chrome: for local API use manifest.development.json as manifest.json (see chrome-plugin/README.md)."

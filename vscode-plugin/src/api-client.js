@@ -1,4 +1,7 @@
-const API_BASE = process.env.STACKPR_API_BASE_URL || "http://localhost:3001/api";
+const API_BASE =
+  process.env.NUGIT_API_BASE_URL ||
+  process.env.STACKPR_API_BASE_URL ||
+  "http://localhost:3001/api";
 
 function headers(token) {
   const base = { "Content-Type": "application/json" };

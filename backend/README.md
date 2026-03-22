@@ -17,8 +17,11 @@ cp .env.example .env
 
 ## Run API
 
+Use the project virtualenv so you don’t pick up a broken global `uvicorn` (wrong shebang from another machine/project):
+
 ```bash
-uvicorn stackpr.main:app --reload --port 3001
+.venv/bin/uvicorn stackpr.main:app --reload --port 3001
+# or: python -m uvicorn stackpr.main:app --reload --port 3001
 ```
 
 No Alembic/migrations required for default operation.

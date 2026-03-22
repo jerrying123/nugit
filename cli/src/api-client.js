@@ -1,8 +1,20 @@
-const API_BASE_URL = process.env.STACKPR_API_BASE_URL || "http://localhost:3001/api";
-const USER_TOKEN_ENV = "STACKPR_USER_TOKEN";
+import {
+  githubCreatePullRequest,
+  githubGetContents,
+  githubGetPull,
+  githubGetRepoMetadata,
+  githubGetViewer,
+  githubListUserRepos,
+  useDirectGithub
+} from "./github-rest.js";
+
+const API_BASE_URL =
+  process.env.NUGIT_API_BASE_URL ||
+  process.env.STACKPR_API_BASE_URL ||
+  "http://localhost:3001/api";
 
 export function getToken() {
-  return process.env[USER_TOKEN_ENV] || "";
+  return process.env.NUGIT_USER_TOKEN || process.env.STACKPR_USER_TOKEN || "";
 }
 
 export function withAuthHeaders(headers = {}) {
@@ -56,8 +68,56 @@ export async function listMyPulls() {
   return apiRequest("/account/pulls", { method: "GET" });
 }
 
-/** GET GitHub contents via API proxy (requires STACKPR_USER_TOKEN). */
+/** Current user login (PAT → GitHub `/user` by default; else StackPR `/auth/me`). */
+export async function authMe() {
+  if (useDirectGithub()) {
+    return githubGetViewer();
+  }
+  return apiRequest("/auth/me", { method: "GET" });
+}
+
+/** GitHub repo metadata (includes default_branch). */
+export async function getRepoMetadata(owner, repo) {
+  if (useDirectGithub()) {
+    return githubGetRepoMetadata(owner, repo);
+  }
+  const o = encodeURIComponent(owner);
+  const r = encodeURIComponent(repo);
+  return apiRequest(`/github/repos/${o}/${r}`, { method: "GET" });
+}
+
+/**
+ * Open a PR on GitHub. `head` must already exist on the remote (push your branch first).
+ * @param {string} owner
+ * @param {string} repo
+ * @param {{ title: string, head: string, base: string, body?: string, draft?: boolean }} fields
+ */
+export async function createPullRequest(owner, repo, fields) {
+  const o = encodeURIComponent(owner);
+  const r = encodeURIComponent(repo);
+  const payload = {
+    title: fields.title,
+    head: fields.head,
+    base: fields.base,
+    draft: !!fields.draft
+  };
+  if (fields.body) {
+    payload.body = fields.body;
+  }
+  if (useDirectGithub()) {
+    return githubCreatePullRequest(owner, repo, fields);
+  }
+  return apiRequest(`/github/repos/${o}/${r}/pulls`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+/** GET repo file from GitHub (direct API by default). */
 export async function getGithubContents(owner, repo, filePath, ref) {
+  if (useDirectGithub()) {
+    return githubGetContents(owner, repo, filePath, ref);
+  }
   const pathSeg = filePath
     .split("/")
     .filter(Boolean)
@@ -93,9 +153,17 @@ export async function fetchRemoteStackJson(repoFullName, ref) {
 }
 
 export async function getPull(owner, repo, number) {
-  return apiRequest(`/github/repos/${owner}/${repo}/pulls/${number}`, { method: "GET" });
+  if (useDirectGithub()) {
+    return githubGetPull(owner, repo, number);
+  }
+  const o = encodeURIComponent(owner);
+  const r = encodeURIComponent(repo);
+  return apiRequest(`/github/repos/${o}/${r}/pulls/${number}`, { method: "GET" });
 }
 
 export async function listUserRepos(page = 1) {
+  if (useDirectGithub()) {
+    return githubListUserRepos(page);
+  }
   return apiRequest(`/github/user/repos?page=${page}&per_page=30`, { method: "GET" });
 }

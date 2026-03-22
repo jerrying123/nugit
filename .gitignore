@@ -85,4 +85,7 @@ temp/
 # --- Docker / local data (optional) ---
 *.rdb
 
+# --- Local sandbox: separate GitHub clone / test repo (not committed) ---
+test-repo/
+
 */node_modules/

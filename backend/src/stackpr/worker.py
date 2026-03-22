@@ -7,7 +7,7 @@ from arq.connections import RedisSettings
 
 from stackpr.config import get_settings
 from stackpr.github.app_auth import get_installation_client
-from stackpr.github.contents import fetch_nugit_stack_document
+from stackpr.github.contents import fetch_nugit_stack_document_for_pr
 
 
 async def rebase_cascade_job(
@@ -29,7 +29,9 @@ def _next_pr_after_merge(
 ) -> int | None:
     owner, repo = repo_full_name.split("/", 1)
     with get_installation_client(installation_id) as client:
-        doc = fetch_nugit_stack_document(client, owner, repo)
+        doc, _ = fetch_nugit_stack_document_for_pr(
+            client, owner, repo, merged_pr_number, explicit_ref=None
+        )
     if not doc:
         return None
     prs = sorted(doc.prs, key=lambda p: p.position)

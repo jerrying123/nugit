@@ -16,9 +16,55 @@
     "resolution_contexts": {
       "type": "array",
       "items": { "$ref": "#/$defs/resolutionContext" }
-    }
+    },
+    "layer": { "$ref": "#/$defs/stackLayer" }
   },
   "$defs": {
+    "stackLayer": {
+      "type": "object",
+      "required": ["position", "stack_size", "below", "above"],
+      "additionalProperties": false,
+      "properties": {
+        "position": { "type": "integer", "minimum": 0 },
+        "stack_size": { "type": "integer", "minimum": 1 },
+        "below": { "$ref": "#/$defs/layerPointer" },
+        "above": {
+          "oneOf": [{ "$ref": "#/$defs/stackPrPointer" }, { "type": "null" }]
+        },
+        "tip": { "$ref": "#/$defs/stackTip" }
+      }
+    },
+    "stackTip": {
+      "type": "object",
+      "required": ["pr_number", "head_branch"],
+      "additionalProperties": false,
+      "properties": {
+        "pr_number": { "type": "integer", "minimum": 1 },
+        "head_branch": { "type": "string" }
+      }
+    },
+    "layerPointer": {
+      "oneOf": [{ "$ref": "#/$defs/branchPointer" }, { "$ref": "#/$defs/stackPrPointer" }]
+    },
+    "branchPointer": {
+      "type": "object",
+      "required": ["type", "ref"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "const": "branch" },
+        "ref": { "type": "string" }
+      }
+    },
+    "stackPrPointer": {
+      "type": "object",
+      "required": ["type", "pr_number", "head_branch"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "const": "stack_pr" },
+        "pr_number": { "type": "integer", "minimum": 1 },
+        "head_branch": { "type": "string" }
+      }
+    },
     "stackedPr": {
       "type": "object",
       "required": ["pr_number", "position"],

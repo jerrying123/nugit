@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Run the nugit CLI without npm link (no global install / no sudo).
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec node "$ROOT/cli/src/nugit.js" "$@"

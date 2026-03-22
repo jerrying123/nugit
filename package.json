@@ -1,0 +1,10 @@
+{
+  "name": "@nugit/monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Monorepo root — links the nugit CLI onto your PATH",
+  "type": "module",
+  "bin": {
+    "nugit": "cli/src/nugit.js"
+  }
+}

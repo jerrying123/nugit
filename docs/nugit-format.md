@@ -21,6 +21,21 @@ Stack definitions live in the repository under **`.nugit/`** so any client (CLI,
 | `created_by` | string | yes | GitHub login of the stack creator (metadata). |
 | `prs` | array | yes | Ordered list of stacked PRs (see below). |
 | `resolution_contexts` | array | no | Per-user “fixing” context (see below). |
+| `layer` | object | no | Per-branch view: where this copy sits in the stack (see below). Written by **`nugit stack propagate`**. |
+
+### `layer` (optional)
+
+Present on copies committed to a stacked **head** branch. **`prs`** on that branch is a **prefix** of the stack: from the bottom through **this** layer only (e.g. `test-stack0` lists only the bottom PR; the tip branch lists every PR).
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `position` | int | yes | Same as this head’s PR entry (`0` = bottom). |
+| `stack_size` | int | yes | **Total** number of PRs in the whole stack (not only `prs.length` on this branch). |
+| `below` | object | yes | What this PR stacks **on**. Bottom layer: `{ "type": "branch", "ref": "<base_branch>" }` (e.g. `main`). Upper layers: `{ "type": "stack_pr", "pr_number", "head_branch" }` for the PR directly underneath. |
+| `above` | object \| null | yes | PR directly **above** this one, same shape as `below`’s `stack_pr`, or **`null`** at the stack tip. |
+| `tip` | object | yes (when using propagate) | Stack tip: `{ "pr_number", "head_branch" }` for the top PR. Lets the API load the **full** stack from the tip branch when reading a prefix-only file. |
+
+**Legacy:** If `layer.tip` is omitted, `layer.stack_size` must equal `prs.length` (one file holds the full stack).
 
 ### `prs[]` entry
 
@@ -75,15 +90,26 @@ Stack definitions live in the repository under **`.nugit/`** so any client (CLI,
   ],
   "resolution_contexts": [
     { "user_github_login": "bob", "resolution_pr_number": 102 }
-  ]
+  ],
+  "layer": {
+    "position": 1,
+    "stack_size": 2,
+    "below": { "type": "stack_pr", "pr_number": 101, "head_branch": "feat/base" },
+    "above": null
+  }
 }
 ```
+
+The `layer` block matches a copy committed on **`feat/next`** (stack tip): `below` points at PR 101; `above` is `null`. On **`feat/base`**, `layer` would have `position` `0`, `below` `{ "type": "branch", "ref": "main" }`, and `above` `{ "type": "stack_pr", "pr_number": 102, "head_branch": "feat/next" }`.
 
 ## Validation rules
 
 - `prs` must have unique `pr_number` and unique `position` values.
 - Positions should be contiguous `0..n-1` after reorder (clients may normalize).
 - `repo_full_name` should match the repository where the file lives (warning only if mismatch).
+- If `layer` is present: `layer.position` must match the highest `prs[].position` in the file.
+- With **`layer.tip`**: `prs.length === layer.position + 1`, `layer.stack_size` is the full stack depth, and positions must be `0..layer.position` contiguous.
+- Without **`layer.tip`** (legacy): `layer.stack_size === prs.length`.
 
 ## JSON Schema
 
