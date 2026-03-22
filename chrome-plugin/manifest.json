@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "StackPR",
+  "version": "0.1.0",
+  "description": "Optional stacked PR helper for GitHub (active on github.com).",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["https://github.com/*"],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "action": {
+    "default_popup": "src/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*"],
+      "js": ["src/content.js"]
+    }
+  ]
+}

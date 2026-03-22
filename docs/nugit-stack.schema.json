@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nugit.local/schemas/nugit-stack.schema.json",
+  "title": "NugitStack",
+  "type": "object",
+  "required": ["version", "repo_full_name", "created_by", "prs"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "repo_full_name": { "type": "string", "minLength": 1 },
+    "created_by": { "type": "string", "minLength": 1 },
+    "prs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/stackedPr" }
+    },
+    "resolution_contexts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/resolutionContext" }
+    }
+  },
+  "$defs": {
+    "stackedPr": {
+      "type": "object",
+      "required": ["pr_number", "position"],
+      "additionalProperties": false,
+      "properties": {
+        "pr_number": { "type": "integer", "minimum": 1 },
+        "position": { "type": "integer", "minimum": 0 },
+        "head_branch": { "type": "string" },
+        "base_branch": { "type": "string" },
+        "head_sha": { "type": "string" },
+        "base_sha": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "merged", "closed"] },
+        "has_unabsorbed_changes": { "type": "boolean" },
+        "author_github_login": { "type": ["string", "null"] },
+        "is_fork": { "type": "boolean" },
+        "head_repo_full_name": { "type": ["string", "null"] },
+        "base_repo_full_name": { "type": ["string", "null"] }
+      }
+    },
+    "resolutionContext": {
+      "type": "object",
+      "required": ["user_github_login", "resolution_pr_number"],
+      "additionalProperties": false,
+      "properties": {
+        "user_github_login": { "type": "string", "minLength": 1 },
+        "resolution_pr_number": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

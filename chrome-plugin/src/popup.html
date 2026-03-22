@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>StackPR</title>
+    <style>
+      body { font-family: sans-serif; margin: 12px; width: 300px; }
+      button { margin-top: 8px; width: 100%; }
+      input { width: 100%; }
+      .row { margin-bottom: 10px; }
+      .status { font-size: 12px; color: #333; margin-top: 8px; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h3>StackPR</h3>
+    <label class="row">
+      <input id="opt-in" type="checkbox" />
+      Enable StackPR on PR pages
+    </label>
+    <div class="row">
+      <button id="auth-device">Start Device Login</button>
+    </div>
+    <div class="row">
+      <label>API base (include <code>/api</code>)</label>
+      <input id="api-base" placeholder="http://localhost:3001/api" />
+      <button id="save-api-base" type="button">Save API URL</button>
+    </div>
+    <div class="row">
+      <input id="pat-input" placeholder="GitHub PAT" />
+      <button id="save-pat">Save PAT</button>
+    </div>
+    <div class="row">
+      <button id="list-prs">List My PRs</button>
+    </div>
+    <pre id="status" class="status"></pre>
+    <script type="module" src="./popup.js"></script>
+  </body>
+  </html>

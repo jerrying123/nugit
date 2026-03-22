@@ -1,0 +1,47 @@
+{
+  "name": "stackpr-vscode-plugin",
+  "displayName": "StackPR",
+  "description": "MVP VS Code extension for stacked PR workflows",
+  "version": "0.1.0",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [
+    "onCommand:stackpr.login",
+    "onCommand:stackpr.listMyPrs",
+    "onCommand:stackpr.initStackFromPr",
+    "onCommand:stackpr.showStack",
+    "onCommand:stackpr.fetchRemoteStack",
+    "onCommand:stackpr.savePat",
+    "workspaceContains:**/.nugit/stack.json"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "stackpr.login", "title": "StackPR: Login" },
+      { "command": "stackpr.listMyPrs", "title": "StackPR: List My PRs" },
+      { "command": "stackpr.initStackFromPr", "title": "StackPR: Init Stack From PR" },
+      { "command": "stackpr.showStack", "title": "StackPR: Load Local .nugit Stack" },
+      { "command": "stackpr.fetchRemoteStack", "title": "StackPR: Fetch Stack From API (by PR)" },
+      { "command": "stackpr.savePat", "title": "StackPR: Save PAT to Secret Storage" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "stackpr", "title": "StackPR", "icon": "resources/icon.svg" }
+      ]
+    },
+    "views": {
+      "stackpr": [
+        { "id": "stackpr.stackView", "name": "Stack" }
+      ]
+    }
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  }
+}

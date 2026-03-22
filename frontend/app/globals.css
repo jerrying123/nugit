@@ -1,0 +1,68 @@
+:root {
+  --bg: #0d1117;
+  --fg: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --border: #30363d;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  line-height: 1.5;
+}
+a {
+  color: var(--accent);
+}
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+.card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: #161b22;
+}
+button,
+input[type="password"],
+input[type="text"] {
+  font: inherit;
+}
+button {
+  background: var(--accent);
+  color: #0d1117;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button.secondary {
+  background: var(--border);
+  color: var(--fg);
+}
+input {
+  width: 100%;
+  max-width: 420px;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #0d1117;
+  color: var(--fg);
+  margin: 0.25rem 0 0.75rem;
+}
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
