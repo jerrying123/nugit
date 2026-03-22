@@ -1,7 +1,7 @@
 const vscode = require("vscode");
 const path = require("path");
 const fs = require("fs");
-const { startDeviceLogin, listMyPrs, fetchStackForPr } = require("./api-client");
+const { startDeviceLogin, listMyPulls, fetchStackJsonFromGithub } = require("./api-client");
 
 let latestStack = null;
 
@@ -76,7 +76,12 @@ function register(context, command, handler) {
 
 async function getSecretToken(context) {
   const fromSecret = await context.secrets.get("stackpr.githubToken");
-  return fromSecret || process.env.STACKPR_USER_TOKEN || "";
+  return (
+    fromSecret ||
+    process.env.NUGIT_USER_TOKEN ||
+    process.env.STACKPR_USER_TOKEN ||
+    ""
+  );
 }
 
 function activate(context) {
@@ -92,8 +97,13 @@ function activate(context) {
 
   register(context, "stackpr.listMyPrs", async () => {
     const t = await getSecretToken(context);
-    const result = await listMyPrs(t);
-    vscode.window.showInformationMessage(`Found ${result.total_count || 0} pull requests.`);
+    if (!t) {
+      vscode.window.showErrorMessage("Set NUGIT_USER_TOKEN or save a PAT (Nugit: Save PAT).");
+      return;
+    }
+    const result = await listMyPulls(t);
+    const n = Array.isArray(result.items) ? result.items.length : 0;
+    vscode.window.showInformationMessage(`Open PRs you authored: ${n} (of ${result.total_count ?? n} total).`);
   });
 
   register(context, "stackpr.initStackFromPr", async () => {
@@ -136,37 +146,34 @@ function activate(context) {
   });
 
   register(context, "stackpr.fetchRemoteStack", async () => {
-    const owner = await vscode.window.showInputBox({ prompt: "Owner" });
-    const repo = await vscode.window.showInputBox({ prompt: "Repo" });
-    const pr = await vscode.window.showInputBox({ prompt: "PR number in stack" });
-    const ref = await vscode.window.showInputBox({ prompt: "Ref (optional, branch/sha)", value: "" });
-    if (!owner || !repo || !pr) {
+    const owner = await vscode.window.showInputBox({ prompt: "Owner (GitHub org or user)" });
+    const repo = await vscode.window.showInputBox({ prompt: "Repository name" });
+    const ref = await vscode.window.showInputBox({
+      prompt: "Git ref (branch or sha) for .nugit/stack.json — leave empty for default branch",
+      value: ""
+    });
+    if (!owner || !repo) {
       return;
     }
     const t = await getSecretToken(context);
     if (!t) {
       vscode.window.showErrorMessage(
-        "Set NUGIT_USER_TOKEN (or STACKPR_USER_TOKEN) or run StackPR: Save PAT to Secret Storage."
+        "Set NUGIT_USER_TOKEN or run Nugit: Save PAT to Secret Storage."
       );
       return;
     }
     try {
-      const data = await fetchStackForPr(t, owner, repo, Number(pr), ref || undefined);
+      const data = await fetchStackJsonFromGithub(t, owner, repo, ref || undefined);
       latestStack = {
         version: 1,
         repo_full_name: data.repo_full_name || `${owner}/${repo}`,
-        created_by: "",
-        prs: (data.prs || []).map((p, i) => ({
-          pr_number: p.pr_number,
-          position: p.position ?? i,
-          head_branch: p.head_branch || "",
-          base_branch: p.base_branch || "",
-          status: p.status || "open"
-        })),
-        resolution_contexts: data.resolution_contexts || []
+        created_by: data.created_by || "",
+        prs: Array.isArray(data.prs) ? data.prs : [],
+        resolution_contexts: data.resolution_contexts || [],
+        cross_pr_links: data.cross_pr_links || []
       };
       provider.refresh();
-      vscode.window.showInformationMessage(`Loaded remote stack (${latestStack.prs.length} PRs).`);
+      vscode.window.showInformationMessage(`Loaded stack from GitHub (${latestStack.prs.length} PRs).`);
     } catch (e) {
       vscode.window.showErrorMessage(String(e.message || e));
     }
@@ -178,7 +185,7 @@ function activate(context) {
       return;
     }
     await context.secrets.store("stackpr.githubToken", pat);
-    vscode.window.showInformationMessage("PAT stored in VS Code secret storage.");
+    vscode.window.showInformationMessage("PAT stored in VS Code secret storage (used as NUGIT_USER_TOKEN).");
   });
 }
 

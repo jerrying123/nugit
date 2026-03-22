@@ -1,18 +1,5 @@
+# Optional local Redis for future automation (not required for the CLI).
 services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: stackpr
-      POSTGRES_USER: stackpr
-      POSTGRES_PASSWORD: stackpr
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U stackpr -d stackpr"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7
     ports:
@@ -22,46 +9,3 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
-  backend:
-    image: python:3.11-slim
-    working_dir: /app/backend
-    volumes:
-      - ./:/app
-    command: >
-      sh -c "pip install -e '.[dev]' &&
-             uvicorn stackpr.main:app --host 0.0.0.0 --port 3001"
-    environment:
-      DATABASE_URL: ""
-      REDIS_URL: redis://redis:6379
-      API_BASE_URL: http://localhost:3001
-      GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
-      GITHUB_APP_ID: ${GITHUB_APP_ID:-}
-      GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY:-}
-      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
-    ports:
-      - "3001:3001"
-    depends_on:
-      redis:
-        condition: service_healthy
-    profiles: ["app", "dev", "test"]
-
-  worker:
-    image: python:3.11-slim
-    working_dir: /app/backend
-    volumes:
-      - ./:/app
-    command: >
-      sh -c "pip install -e '.[dev]' &&
-             arq stackpr.worker.WorkerSettings"
-    environment:
-      DATABASE_URL: ""
-      REDIS_URL: redis://redis:6379
-      GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
-      GITHUB_APP_ID: ${GITHUB_APP_ID:-}
-      GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY:-}
-      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
-    depends_on:
-      redis:
-        condition: service_healthy
-    profiles: ["app", "dev", "test"]

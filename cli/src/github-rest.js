@@ -1,34 +1,31 @@
 /**
  * Call GitHub's REST API directly (no StackPR/nugit FastAPI proxy).
- * Used by default so `nugit stack add`, `init`, `prs create`, etc. work offline from the backend.
+ * Direct GitHub REST for the nugit CLI (PAT / OAuth token).
  */
+
+import { resolveGithubToken } from "./auth-token.js";
 
 const GITHUB_API_BASE = (
   process.env.GITHUB_API_URL || "https://api.github.com"
 ).replace(/\/$/, "");
 
 export function getGithubPat() {
-  return process.env.NUGIT_USER_TOKEN || process.env.STACKPR_USER_TOKEN || "";
+  return resolveGithubToken();
 }
 
-/**
- * When true (default), GitHub reads/writes use api.github.com with the PAT.
- * Set `NUGIT_GITHUB_VIA_STACKPR_API=1` to route through the FastAPI proxy instead.
- */
+/** @deprecated All GitHub calls are direct; proxy env vars are ignored. */
 export function useDirectGithub() {
-  return (
-    process.env.NUGIT_GITHUB_VIA_STACKPR_API !== "1" &&
-    process.env.NUGIT_USE_STACKPR_API !== "1"
-  );
+  return true;
 }
 
 /**
  * @param {string} method
  * @param {string} path API path starting with /
  * @param {Record<string, unknown> | undefined} jsonBody
+ * @param {string} [tokenOverride] PAT for this call only (e.g. `nugit auth pat --token`)
  */
-export async function githubRestJson(method, path, jsonBody) {
-  const token = getGithubPat();
+export async function githubRestJson(method, path, jsonBody, tokenOverride) {
+  const token = tokenOverride ?? getGithubPat();
   if (!token) {
     throw new Error(
       "Set NUGIT_USER_TOKEN or STACKPR_USER_TOKEN (GitHub PAT or OAuth token with repo scope)"
@@ -140,4 +137,61 @@ export async function githubListUserRepos(page = 1) {
     "GET",
     `/user/repos?page=${encodeURIComponent(String(page))}&per_page=30`
   );
+}
+
+/**
+ * Search issues (includes PRs). `q` is GitHub search query syntax.
+ * @param {string} q
+ * @param {number} [perPage] max 100
+ * @param {number} [page] 1-based
+ */
+export async function githubSearchIssues(q, perPage = 30, page = 1) {
+  const pp = Math.min(100, Math.max(1, perPage));
+  const p = Math.max(1, page);
+  const query = new URLSearchParams({
+    q,
+    per_page: String(pp),
+    page: String(p),
+    sort: "updated",
+    order: "desc"
+  });
+  return githubRestJson("GET", `/search/issues?${query.toString()}`);
+}
+
+/**
+ * Open pull requests in a repository (paginated). Prefer this over search for “all open PRs”.
+ * @param {string} owner
+ * @param {string} repo
+ * @param {number} [page] 1-based
+ * @param {number} [perPage] max 100
+ */
+export async function githubListOpenPulls(owner, repo, page = 1, perPage = 30) {
+  const pp = Math.min(100, Math.max(1, perPage));
+  const p = Math.max(1, page);
+  return githubRestJson(
+    "GET",
+    `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls?state=open&page=${p}&per_page=${pp}`
+  );
+}
+
+/**
+ * @param {string} owner
+ * @param {string} repo
+ * @param {string} path file path
+ * @param {string} ref branch or sha
+ */
+export async function githubGetBlobText(owner, repo, path, ref) {
+  const pathSeg = path
+    .split("/")
+    .filter(Boolean)
+    .map(encodeURIComponent)
+    .join("/");
+  const item = await githubRestJson(
+    "GET",
+    `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${pathSeg}?ref=${encodeURIComponent(ref)}`
+  );
+  if (!item || item.type !== "file" || item.encoding !== "base64" || !item.content) {
+    return null;
+  }
+  return Buffer.from(String(item.content).replace(/\s/g, ""), "base64").toString("utf8");
 }

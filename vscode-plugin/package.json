@@ -1,7 +1,7 @@
 {
   "name": "stackpr-vscode-plugin",
-  "displayName": "StackPR",
-  "description": "MVP VS Code extension for stacked PR workflows",
+  "displayName": "Nugit",
+  "description": "Stacked PR workflows: local .nugit/stack.json + GitHub REST",
   "version": "0.1.0",
   "publisher": "local",
   "engines": {
@@ -20,16 +20,16 @@
   "main": "./src/extension.js",
   "contributes": {
     "commands": [
-      { "command": "stackpr.login", "title": "StackPR: Login" },
-      { "command": "stackpr.listMyPrs", "title": "StackPR: List My PRs" },
-      { "command": "stackpr.initStackFromPr", "title": "StackPR: Init Stack From PR" },
-      { "command": "stackpr.showStack", "title": "StackPR: Load Local .nugit Stack" },
-      { "command": "stackpr.fetchRemoteStack", "title": "StackPR: Fetch Stack From API (by PR)" },
-      { "command": "stackpr.savePat", "title": "StackPR: Save PAT to Secret Storage" }
+      { "command": "stackpr.login", "title": "Nugit: Login (device flow — needs GITHUB_OAUTH_CLIENT_ID)" },
+      { "command": "stackpr.listMyPrs", "title": "Nugit: List My Open PRs" },
+      { "command": "stackpr.initStackFromPr", "title": "Nugit: Init .nugit/stack.json" },
+      { "command": "stackpr.showStack", "title": "Nugit: Load Local .nugit Stack" },
+      { "command": "stackpr.fetchRemoteStack", "title": "Nugit: Fetch stack.json From GitHub" },
+      { "command": "stackpr.savePat", "title": "Nugit: Save PAT to Secret Storage" }
     ],
     "viewsContainers": {
       "activitybar": [
-        { "id": "stackpr", "title": "StackPR", "icon": "resources/icon.svg" }
+        { "id": "stackpr", "title": "Nugit", "icon": "resources/icon.svg" }
       ]
     },
     "views": {

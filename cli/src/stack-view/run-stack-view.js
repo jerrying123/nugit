@@ -1,6 +1,5 @@
 import React from "react";
 import { render } from "ink";
-import { useDirectGithub } from "../github-rest.js";
 import {
   githubPostIssueComment,
   githubPostPullReviewCommentReply,
@@ -21,12 +20,6 @@ import { questionLine } from "./prompt-line.js";
  * @param {string} [opts.file]
  */
 export async function runStackViewCommand(opts) {
-  if (!useDirectGithub()) {
-    throw new Error(
-      "nugit stack view uses the GitHub API directly. Unset NUGIT_GITHUB_VIA_STACKPR_API (and NUGIT_USE_STACKPR_API)."
-    );
-  }
-
   const { doc } = await loadStackDocForView({
     root: findGitRoot(),
     repo: opts.repo,

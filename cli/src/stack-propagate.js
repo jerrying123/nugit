@@ -91,6 +91,89 @@ function execGit(root, args, dryRun) {
 }
 
 /**
+ * Clear stuck merge/rebase state so a later `git checkout` can run.
+ * @param {string} root
+ */
+export function abortStaleGitOperations(root) {
+  for (const args of /** @type {const} */ ([["merge", "--abort"], ["rebase", "--abort"]])) {
+    try {
+      execFileSync("git", args, { cwd: root, stdio: "ignore" });
+    } catch {
+      /* not in merge/rebase */
+    }
+  }
+}
+
+/** Relative path always with `/` for git and comparisons */
+export const STACK_JSON_REL = path.join(".nugit", "stack.json").replace(/\\/g, "/");
+
+/**
+ * @param {string} root
+ */
+function listUnmergedPaths(root) {
+  const out = execSync("git diff --name-only --diff-filter=U", { cwd: root, encoding: "utf8" })
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((p) => p.replace(/\\/g, "/"));
+  return out;
+}
+
+/**
+ * When merging the lower head into the upper, `.nugit/stack.json` often conflicts (different prefixes).
+ * We take the incoming branch's version and complete the merge; propagate immediately overwrites the file.
+ * @param {string} root
+ * @param {string} lowerHeadBranch
+ * @returns {boolean} true if merge was completed
+ */
+function resolveStackJsonMergeWithTheirs(root, lowerHeadBranch) {
+  const um = listUnmergedPaths(root);
+  if (um.length !== 1 || um[0] !== STACK_JSON_REL) {
+    return false;
+  }
+  execGit(root, ["checkout", "--theirs", STACK_JSON_REL], false);
+  execGit(root, ["add", STACK_JSON_REL], false);
+  execGit(root, ["commit", "--no-edit"], false);
+  console.error(
+    `Auto-resolved ${STACK_JSON_REL} merge (used ${lowerHeadBranch}); replacing with propagated metadata next.`
+  );
+  return true;
+}
+
+/**
+ * Merge the stacked branch below into the current branch so upper heads include
+ * the latest `.nugit/stack.json` (and any other commits) from the layer under them.
+ * Without this, committing on test0 first leaves test1/test2 missing that commit → GitHub PR conflicts.
+ * @param {string} root
+ * @param {string} lowerHeadBranch local branch name (e.g. test-stack0)
+ * @param {boolean} dryRun
+ */
+export function mergeLowerStackHead(root, lowerHeadBranch, dryRun) {
+  if (!lowerHeadBranch) {
+    return;
+  }
+  if (dryRun) {
+    console.error(`[dry-run] git merge --no-edit ${lowerHeadBranch}  # absorb lower stacked head`);
+    return;
+  }
+  try {
+    const out = execGit(root, ["merge", "--no-edit", lowerHeadBranch], false);
+    if (out) {
+      console.error(out);
+    }
+  } catch (err) {
+    if (resolveStackJsonMergeWithTheirs(root, lowerHeadBranch)) {
+      return;
+    }
+    const msg = err && typeof err === "object" && "stderr" in err ? String(/** @type {{ stderr?: Buffer }} */ (err).stderr) : String(err);
+    throw new Error(
+      `git merge ${lowerHeadBranch} failed while propagating (upper branch must include the lower head). ` +
+        `Resolve conflicts, commit the merge, then re-run \`nugit stack propagate\`. Underlying: ${msg.trim() || err}`
+    );
+  }
+}
+
+/**
  * @param {string} root
  */
 export function assertCleanWorkingTree(root) {
@@ -98,6 +181,55 @@ export function assertCleanWorkingTree(root) {
   if (out.trim()) {
     throw new Error("Working tree is not clean; commit or stash before nugit stack propagate");
   }
+}
+
+const BOOTSTRAP_COMMIT_MESSAGE = "Nugit stack creation";
+
+/**
+ * If the only dirty path is `.nugit/stack.json`, commit it so propagate can run.
+ * @param {string} root
+ * @param {boolean} dryRun
+ * @param {string} [message]
+ * @returns {boolean} whether a commit was made (or would be made in dry-run)
+ */
+export function tryBootstrapCommitStackJson(root, dryRun, message = BOOTSTRAP_COMMIT_MESSAGE) {
+  const full = execSync("git status --porcelain", { cwd: root, encoding: "utf8" }).trim();
+  if (!full) {
+    return false;
+  }
+
+  const besidesStack = execFileSync(
+    "git",
+    ["status", "--porcelain", "--", ".", ":(exclude).nugit/stack.json"],
+    { cwd: root, encoding: "utf8" }
+  ).trim();
+
+  if (besidesStack) {
+    throw new Error(
+      "Working tree has changes outside `.nugit/stack.json`; commit or stash them before propagate.\n" + besidesStack
+    );
+  }
+
+  const stackDirty = execFileSync("git", ["status", "--porcelain", "--", ".nugit/stack.json"], {
+    cwd: root,
+    encoding: "utf8"
+  }).trim();
+
+  if (!stackDirty) {
+    throw new Error(
+      "Working tree is not clean but `.nugit/stack.json` is not among the changes; commit or stash manually.\n" + full
+    );
+  }
+
+  if (dryRun) {
+    console.error(`[dry-run] git add ${STACK_JSON_REL} && git commit -m ${JSON.stringify(message)}`);
+    return true;
+  }
+
+  execGit(root, ["add", STACK_JSON_REL], false);
+  execGit(root, ["commit", "-m", message], false);
+  console.error(`Committed ${STACK_JSON_REL} (${message})`);
+  return true;
 }
 
 /**
@@ -131,6 +263,10 @@ export function checkoutStackHead(root, remote, branch, dryRun) {
   if (dryRun) {
     return;
   }
+  // After `git merge`, the index can still block `git checkout` to the next head ("resolve your
+  // index first"). Sync to HEAD before switching branches.
+  abortStaleGitOperations(root);
+  execGit(root, ["reset", "--hard", "HEAD"], false);
   try {
     execGit(root, ["checkout", branch], false);
   } catch {
@@ -144,7 +280,17 @@ export function checkoutStackHead(root, remote, branch, dryRun) {
  * @param {boolean} dryRun
  */
 export function checkoutRef(root, ref, dryRun) {
-  execGit(root, ["checkout", ref], dryRun);
+  if (dryRun) {
+    execGit(root, ["checkout", ref], dryRun);
+    return;
+  }
+  try {
+    execGit(root, ["checkout", ref], false);
+  } catch {
+    abortStaleGitOperations(root);
+    execGit(root, ["reset", "--hard", "HEAD"], false);
+    execGit(root, ["checkout", ref], false);
+  }
 }
 
 /**
@@ -153,7 +299,11 @@ export function checkoutRef(root, ref, dryRun) {
  */
 function fileContentAtHead(root, fileRel) {
   try {
-    return execSync(`git show HEAD:${fileRel}`, { cwd: root, encoding: "utf8" });
+    return execFileSync("git", ["show", `HEAD:${fileRel}`], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    });
   } catch {
     return null;
   }
@@ -166,6 +316,8 @@ function fileContentAtHead(root, fileRel) {
  * @param {boolean} [opts.push]
  * @param {boolean} [opts.dryRun]
  * @param {string} [opts.remote]
+ * @param {boolean} [opts.noMergeLower] if true, skip merging the branch below into each upper head (not recommended)
+ * @param {boolean} [opts.bootstrapCommit] if false, skip auto-commit of dirty `.nugit/stack.json` before propagating
  */
 export async function runStackPropagate(opts) {
   const root = opts.root;
@@ -173,6 +325,8 @@ export async function runStackPropagate(opts) {
   const push = Boolean(opts.push);
   const dryRun = Boolean(opts.dryRun);
   const remote = opts.remote || "origin";
+  const noMergeLower = Boolean(opts.noMergeLower);
+  const bootstrapCommit = opts.bootstrapCommit !== false;
 
   const raw = JSON.parse(fs.readFileSync(stackJsonPath(root), "utf8"));
   validateStackDoc(raw);
@@ -183,12 +337,25 @@ export async function runStackPropagate(opts) {
     throw new Error("Stack has no PRs; nothing to propagate");
   }
 
+  /** @type {boolean} */
+  let bootstrappedDry = false;
+  if (!dryRun && bootstrapCommit) {
+    tryBootstrapCommitStackJson(root, false);
+  }
+  if (dryRun && bootstrapCommit) {
+    bootstrappedDry = tryBootstrapCommitStackJson(root, true);
+  }
+
   if (!dryRun) {
+    assertCleanWorkingTree(root);
+  } else if (!bootstrappedDry) {
     assertCleanWorkingTree(root);
   }
 
   const start = getCurrentHead(root);
-  const stackRel = path.join(".nugit", "stack.json").replace(/\\/g, "/");
+
+  /** @type {string | null} */
+  let prevHeadBranch = null;
 
   try {
     for (const entry of sorted) {
@@ -204,31 +371,44 @@ export async function runStackPropagate(opts) {
       const json = JSON.stringify(toWrite, null, 2) + "\n";
 
       if (dryRun) {
+        console.error(`[dry-run] checkout ${headBranch}`);
+        if (!noMergeLower && prevHeadBranch) {
+          mergeLowerStackHead(root, prevHeadBranch, true);
+        }
         console.error(
-          `[dry-run] checkout ${headBranch}, write ${stackRel} (${pos + 1} prs prefix of ${sorted.length}, layer position ${pos})`
+          `[dry-run] write ${STACK_JSON_REL} (${pos + 1} prs prefix of ${sorted.length}, layer position ${pos})`
         );
+        prevHeadBranch = headBranch;
         continue;
       }
 
       checkoutStackHead(root, remote, headBranch, false);
 
-      const existing = fileContentAtHead(root, stackRel);
+      if (!noMergeLower && prevHeadBranch) {
+        mergeLowerStackHead(root, prevHeadBranch, false);
+        console.error(`Merged ${prevHeadBranch} into ${headBranch} before writing stack metadata`);
+      }
+
+      const existing = fileContentAtHead(root, STACK_JSON_REL);
       if (existing === json) {
         console.error(`Skip ${headBranch}: .nugit/stack.json already matches`);
+        prevHeadBranch = headBranch;
         continue;
       }
 
       const dir = path.join(root, ".nugit");
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(stackJsonPath(root), json);
-      execGit(root, ["add", stackRel], false);
+      execGit(root, ["add", STACK_JSON_REL], false);
       execGit(root, ["commit", "-m", message], false);
-      console.error(`Committed ${stackRel} on ${headBranch}`);
+      console.error(`Committed ${STACK_JSON_REL} on ${headBranch}`);
 
       if (push) {
         execGit(root, ["push", remote, headBranch], false);
         console.error(`Pushed ${remote}/${headBranch}`);
       }
+
+      prevHeadBranch = headBranch;
     }
   } finally {
     if (!dryRun) {

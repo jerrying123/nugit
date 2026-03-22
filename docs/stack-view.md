@@ -2,7 +2,7 @@
 
 Terminal UI (or `--no-tui` text mode) for a nugit stack: PR chain, conversation comments, line-linked review comments, opening PRs/lines in the browser, posting issue comments, replying in review threads, and requesting reviewers.
 
-**Requires direct GitHub API access** (default for the CLI). Do **not** set `NUGIT_GITHUB_VIA_STACKPR_API=1` / `NUGIT_USE_STACKPR_API=1` for this command.
+**Requires** `NUGIT_USER_TOKEN` (or `STACKPR_USER_TOKEN`) with GitHub API access.
 
 ## Usage
 

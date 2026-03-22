@@ -231,6 +231,41 @@ export function nextStackPosition(prs) {
 }
 
 /**
+ * Normalize `nugit stack add --pr` values (variadic and/or comma-separated).
+ * @param {string | string[] | undefined} optsPr
+ * @returns {number[]}
+ */
+export function parseStackAddPrNumbers(optsPr) {
+  const raw = optsPr == null ? [] : Array.isArray(optsPr) ? optsPr : [optsPr];
+  const tokens = [];
+  for (const r of raw) {
+    for (const part of String(r).split(/[\s,]+/)) {
+      const t = part.trim();
+      if (t) {
+        tokens.push(t);
+      }
+    }
+  }
+  if (tokens.length === 0) {
+    throw new Error("Pass at least one PR number: --pr <n> [n...]");
+  }
+  const nums = tokens.map((t) => Number.parseInt(t, 10));
+  for (let i = 0; i < nums.length; i++) {
+    if (!Number.isFinite(nums[i]) || nums[i] < 1) {
+      throw new Error(`Invalid PR number: ${tokens[i]}`);
+    }
+  }
+  const seen = new Set();
+  for (const n of nums) {
+    if (seen.has(n)) {
+      throw new Error(`Duplicate PR #${n} in --pr list`);
+    }
+    seen.add(n);
+  }
+  return nums;
+}
+
+/**
  * Build a stack PR entry from GitHub GET /pulls/{n} JSON.
  * @param {Record<string, unknown>} pull
  * @param {number} position

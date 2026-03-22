@@ -48,7 +48,7 @@ htmlcov/
 .nox/
 hypothesis/
 
-# --- Node / JS (cli, chrome-plugin, vscode-plugin, frontend) ---
+# --- Node / JS (cli, vscode-plugin) ---
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -56,11 +56,6 @@ yarn-error.log*
 pnpm-debug.log*
 .pnpm-store/
 *.tsbuildinfo
-
-# --- Next.js (frontend) ---
-.next/
-out/
-.vercel
 
 # --- Playwright / browser tests ---
 test-results/

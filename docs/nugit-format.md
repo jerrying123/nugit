@@ -1,12 +1,14 @@
 # `.nugit` stack file format
 
-Stack definitions live in the repository under **`.nugit/`** so any client (CLI, VS Code, Chrome, web) can read or update them without a database.
+Stack definitions live in the repository under **`.nugit/`** so the **CLI** and **VS Code extension** can read or update them without a server.
 
 ## Primary file
 
 - **Path**: `.nugit/stack.json`
 - **Encoding**: UTF-8 JSON
 - **Committing**: Authors commit and push changes like any other config; merge conflicts are resolved in git.
+
+**Discovering stacks in a repo:** **`nugit stack list`** loads open PRs, fetches **`.nugit/stack.json`** from each PR’s **head ref** when present, and merges duplicates using the stack **tip** (`layer.tip.pr_number` when set, else the top `prs[]` entry). Use it to see which stacked chains exist for review; then **`nugit stack view --repo owner/repo --ref <tip-branch>`** (or **`stack fetch`**) for a specific stack.
 
 ## Schema version
 
@@ -21,7 +23,17 @@ Stack definitions live in the repository under **`.nugit/`** so any client (CLI,
 | `created_by` | string | yes | GitHub login of the stack creator (metadata). |
 | `prs` | array | yes | Ordered list of stacked PRs (see below). |
 | `resolution_contexts` | array | no | Per-user “fixing” context (see below). |
-| `layer` | object | no | Per-branch view: where this copy sits in the stack (see below). Written by **`nugit stack propagate`**. |
+| `cross_pr_links` | array | no | Optional entries written by **`nugit stack link`**: `{ from_pr, to_pr, review_comment_id?, role, created_at }` for cross-PR reviewer/author notes. |
+| `layer` | object | no | Per-branch view: where this copy sits in the stack (see below). Written by **`nugit stack propagate`**, which merges each lower stacked head into the next before committing so PR chains stay consistent (see **github-app-and-test-repo.md**). |
+
+### `.nugit/review-state.json` (optional, local)
+
+Not part of the committed stack contract by default. **`nugit stack review done`** appends **review thread ids** you have marked reviewed:
+
+- **`version`**: `1`
+- **`threads`**: `{ review_comment_id, marked_at, user_github_login }[]`
+
+Add this file to **`.gitignore`** in your app repo if you do not want to share review progress.
 
 ### `layer` (optional)
 

@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   validateStackDoc,
   createInitialStackDoc,
-  parseRepoFullName
+  parseRepoFullName,
+  parseStackAddPrNumbers
 } from "../src/nugit-stack.js";
 
 describe("nugit-stack", () => {
@@ -27,5 +28,15 @@ describe("nugit-stack", () => {
   it("parseRepoFullName", () => {
     expect(parseRepoFullName("acme/app")).toEqual({ owner: "acme", repo: "app" });
     expect(() => parseRepoFullName("bad")).toThrow();
+  });
+
+  it("parseStackAddPrNumbers: single, multiple, comma, duplicate", () => {
+    expect(parseStackAddPrNumbers(["9"])).toEqual([9]);
+    expect(parseStackAddPrNumbers(["7", "8", "9"])).toEqual([7, 8, 9]);
+    expect(parseStackAddPrNumbers(["7,8", "9"])).toEqual([7, 8, 9]);
+    expect(parseStackAddPrNumbers("12")).toEqual([12]);
+    expect(() => parseStackAddPrNumbers([])).toThrow(/at least one PR/);
+    expect(() => parseStackAddPrNumbers(["1", "1"])).toThrow(/Duplicate PR #1/);
+    expect(() => parseStackAddPrNumbers(["0"])).toThrow(/Invalid PR/);
   });
 });

@@ -54,6 +54,19 @@ export async function githubListPullReviewComments(owner, repo, pullNumber) {
 }
 
 /**
+ * Single pull review comment by id (REST).
+ * @param {string} owner
+ * @param {string} repo
+ * @param {number} commentId
+ */
+export async function githubGetPullReviewComment(owner, repo, commentId) {
+  const o = encodeURIComponent(owner);
+  const r = encodeURIComponent(repo);
+  const id = encodeURIComponent(String(commentId));
+  return githubRestJson("GET", `/repos/${o}/${r}/pulls/comments/${id}`);
+}
+
+/**
  * @param {string} owner
  * @param {string} repo
  * @param {number} issueNumber
