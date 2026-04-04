@@ -35,6 +35,8 @@ nugit stack view --file /path/to/stack.json
 | `r` | New **issue** comment on selected PR (prompt after UI exits briefly) |
 | `t` | **Reply** in review thread for selected review comment |
 | `R` | **Request reviewers** (comma-separated GitHub usernames) |
+| `S` | **Split** the selected PR (**overview** tab): runs **`nugit split`** (new layered PRs + local **`stack.json`** update when applicable) |
+| `u` | Refresh PR rows from GitHub |
 | `q` / Esc | Quit |
 
 ## PAT permissions

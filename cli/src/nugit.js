@@ -43,6 +43,14 @@ import {
 } from "./cli-output.js";
 import { getRepoFullNameFromGitRoot } from "./git-info.js";
 import { discoverStacksInRepo } from "./stack-discover.js";
+import { getStackDiscoveryOpts, effectiveMaxOpenPrs } from "./stack-discovery-config.js";
+import {
+  tryLoadStackIndex,
+  writeStackIndex,
+  compileStackGraph,
+  readStackHistoryLines
+} from "./stack-graph.js";
+import { runSplitCommand } from "./split-view/run-split.js";
 import { getConfigPath } from "./user-config.js";
 import { openInBrowser } from "./open-browser.js";
 import {
@@ -55,7 +63,8 @@ import {
   runConfigShow,
   runConfigSet,
   runEnvExport,
-  runStart
+  runStart,
+  runStartHub
 } from "./nugit-start.js";
 
 const program = new Command();
@@ -322,8 +331,51 @@ program
     "-c, --command <string>",
     "Run one command via shell -lc instead of opening an interactive shell"
   )
+  .option(
+    "--shell",
+    "Open the configured shell immediately (skip the TTY hub menu: stack view / split / shell)",
+    false
+  )
   .action(async (opts) => {
-    runStart({ command: opts.command });
+    if (opts.command) {
+      runStart({ command: opts.command });
+      return;
+    }
+    const tty = process.stdin.isTTY && process.stdout.isTTY;
+    if (opts.shell || !tty) {
+      runStart({});
+      return;
+    }
+    await runStartHub();
+  });
+
+program
+  .command("split")
+  .description(
+    "Split one PR into layered branches and new GitHub PRs (TUI assigns files to layers; updates local stack.json when the PR is listed there)"
+  )
+  .requiredOption("--pr <n>", "PR number to split")
+  .option("--dry-run", "Materialize local branches only; do not push or create PRs", false)
+  .option("--remote <name>", "Git remote name", "origin")
+  .action(async (opts) => {
+    const root = findGitRoot();
+    if (!root) {
+      throw new Error("Not inside a git repository");
+    }
+    const repoFull = getRepoFullNameFromGitRoot(root);
+    const { owner, repo: repoName } = parseRepoFullName(repoFull);
+    const n = Number.parseInt(String(opts.pr), 10);
+    if (!Number.isFinite(n) || n < 1) {
+      throw new Error("Invalid --pr");
+    }
+    await runSplitCommand({
+      root,
+      owner,
+      repo: repoName,
+      prNumber: n,
+      dryRun: opts.dryRun,
+      remote: opts.remote
+    });
   });
 
 program
@@ -529,10 +581,17 @@ stack
   .option("--repo <owner/repo>", "Default: github.com origin from cwd")
   .option(
     "--max-open-prs <n>",
-    "Max open PRs to scan (0 = scan all pages — may be slow on huge repos)",
-    "500"
+    "Max open PRs to scan (0 = all pages). Default: config / discovery mode"
   )
-  .option("--fetch-concurrency <n>", "Parallel GitHub API calls per phase", "8")
+  .option(
+    "--fetch-concurrency <n>",
+    "Parallel GitHub API calls. Default: config (see stack-discovery-fetch-concurrency)"
+  )
+  .option(
+    "--full",
+    "Full scan for lazy mode (same as NUGIT_STACK_DISCOVERY_FULL=1)",
+    false
+  )
   .option("--no-enrich", "Skip loading PR titles from the API (faster)", false)
   .option("--json", "Machine-readable result", false)
   .action(async (opts) => {
@@ -545,14 +604,17 @@ stack
       );
     }
     const { owner, repo } = parseRepoFullName(repoFull);
-    const maxParsed = Number.parseInt(String(opts.maxOpenPrs), 10);
-    const maxOpenPrs = Number.isNaN(maxParsed) ? 500 : maxParsed;
-    const fcParsed = Number.parseInt(String(opts.fetchConcurrency), 10);
-    const fetchConcurrency = Number.isNaN(fcParsed)
-      ? 8
-      : Math.max(1, Math.min(32, fcParsed));
+    const discovery = getStackDiscoveryOpts();
+    const maxOpenPrs =
+      opts.maxOpenPrs != null && String(opts.maxOpenPrs).length
+        ? Number.parseInt(String(opts.maxOpenPrs), 10)
+        : effectiveMaxOpenPrs(discovery, opts.full);
+    const fetchConcurrency =
+      opts.fetchConcurrency != null && String(opts.fetchConcurrency).length
+        ? Math.max(1, Math.min(32, Number.parseInt(String(opts.fetchConcurrency), 10) || 8))
+        : discovery.fetchConcurrency;
     const result = await discoverStacksInRepo(owner, repo, {
-      maxOpenPrs,
+      maxOpenPrs: Number.isNaN(maxOpenPrs) ? discovery.maxOpenPrs : maxOpenPrs,
       enrich: !opts.noEnrich,
       fetchConcurrency
     });
@@ -560,6 +622,70 @@ stack
       printJson(result);
     } else {
       console.log(formatStacksListHuman(result));
+    }
+  });
+
+stack
+  .command("index")
+  .description("Write .nugit/stack-index.json from GitHub discovery (for lazy/manual modes)")
+  .option("--repo <owner/repo>", "Default: github.com origin from cwd")
+  .option("--max-open-prs <n>", "Max open PRs to scan (default: config)")
+  .option("--no-enrich", "Skip PR title fetch", false)
+  .action(async (opts) => {
+    const root = findGitRoot();
+    if (!root) {
+      throw new Error("Not inside a git repository");
+    }
+    const repoFull =
+      opts.repo || (root ? getRepoFullNameFromGitRoot(root) : null);
+    if (!repoFull) {
+      throw new Error("Pass --repo owner/repo or run from a clone with github.com origin");
+    }
+    const { owner, repo } = parseRepoFullName(repoFull);
+    const discovery = getStackDiscoveryOpts();
+    const max =
+      opts.maxOpenPrs != null && String(opts.maxOpenPrs).length
+        ? Number.parseInt(String(opts.maxOpenPrs), 10)
+        : discovery.maxOpenPrs;
+    const result = await discoverStacksInRepo(owner, repo, {
+      maxOpenPrs: Number.isNaN(max) ? discovery.maxOpenPrs : max,
+      enrich: !opts.noEnrich,
+      fetchConcurrency: discovery.fetchConcurrency
+    });
+    writeStackIndex(root, result);
+    console.error(`Wrote ${root}/.nugit/stack-index.json (${result.stacks_found} stack(s))`);
+  });
+
+stack
+  .command("graph")
+  .description("Print compiled stack graph from stack-index.json + .nugit/stack-history.jsonl")
+  .option("--live", "Rediscover from GitHub if index missing", false)
+  .option("--json", "Machine-readable", false)
+  .action(async (opts) => {
+    const root = findGitRoot();
+    if (!root) {
+      throw new Error("Not inside a git repository");
+    }
+    const repoFull = getRepoFullNameFromGitRoot(root);
+    let discovered = tryLoadStackIndex(root, repoFull);
+    if (!discovered && opts.live) {
+      const { owner, repo } = parseRepoFullName(repoFull);
+      const d = getStackDiscoveryOpts();
+      discovered = await discoverStacksInRepo(owner, repo, {
+        maxOpenPrs: d.maxOpenPrs,
+        enrich: false,
+        fetchConcurrency: d.fetchConcurrency
+      });
+    }
+    if (!discovered) {
+      throw new Error("No stack-index.json — run: nugit stack index (or use --live)");
+    }
+    const hist = readStackHistoryLines(root);
+    const graph = compileStackGraph(discovered, hist);
+    if (opts.json) {
+      printJson(graph);
+    } else {
+      console.log(JSON.stringify(graph, null, 2));
     }
   });
 

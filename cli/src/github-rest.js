@@ -108,6 +108,21 @@ export async function githubGetPull(owner, repo, number) {
 }
 
 /**
+ * List changed files for a pull request (single page up to 100 files).
+ * @param {string} owner
+ * @param {string} repo
+ * @param {number} number
+ */
+export async function githubListPullFiles(owner, repo, number) {
+  return githubRestJson(
+    "GET",
+    `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls/${encodeURIComponent(
+      String(number)
+    )}/files?per_page=100&page=1`
+  );
+}
+
+/**
  * @param {string} owner
  * @param {string} repo
  * @param {{ title: string, head: string, base: string, body?: string, draft?: boolean }} fields

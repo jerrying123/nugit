@@ -114,6 +114,51 @@ Present on copies committed to a stacked **head** branch. **`prs`** on that bran
 
 The `layer` block matches a copy committed on **`feat/next`** (stack tip): `below` points at PR 101; `above` is `null`. On **`feat/base`**, `layer` would have `position` `0`, `below` `{ "type": "branch", "ref": "main" }`, and `above` `{ "type": "stack_pr", "pr_number": 102, "head_branch": "feat/next" }`.
 
+## Sidecar files (CLI)
+
+These are optional and **not** read by the VS Code extension today. They help the CLI cache discovery and record stack edits.
+
+### `.nugit/stack-history.jsonl`
+
+Append-only JSON lines. Each line is one record with at least:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `schema_version` | int | Currently `1` (added by the writer). |
+| `id` | string | Unique id for the record. |
+| `at` | string | ISO timestamp. |
+| `action` | string | e.g. `init`, `split`, `manual`. |
+| `repo_full_name` | string | `owner/repo`. |
+| `snapshot` | object | optional full `stack.json` document after an action. |
+| `parent_record_id` | string | optional link to a previous history line. |
+| `tip_pr_number` / `head_branch` | optional | Tip metadata after operations like split. |
+
+**`nugit split`** appends a line with `action: "split"`, `from_pr`, `new_prs`, and `snapshot` when the local stack file was updated.
+
+### `.nugit/stack-index.json`
+
+Regeneratable cache written by **`nugit stack index`** or after a full discovery in **`nugit stack view`** (depending on **`stackDiscovery.mode`**). Holds merged discovery output (`stacks`, `repo_full_name`, etc.) for the repo. **`stackDiscovery.mode: manual`** expects this file to exist (run **`nugit stack index`** first) unless you pass **`--repo` / `--ref`**.
+
+### `nugit stack graph`
+
+Prints a compiled **node/edge** graph from the last index plus history (`nugit stack graph`; add **`--live`** to refresh discovery first). Used for tooling and debugging stack relationships.
+
+### Stack discovery settings (`~/.config/nugit/config.json`)
+
+| Key | Values | Meaning |
+|-----|--------|---------|
+| `stackDiscovery.mode` | `eager` \| `lazy` \| `manual` | How **`stack list`** / **`stack view`** load remote stacks. |
+| `stackDiscovery.maxOpenPrs` | number | Cap on open PRs scanned. |
+| `stackDiscovery.fetchConcurrency` | number | Parallel fetches for `stack.json` on PR heads. |
+| `stackDiscovery.background` | bool | Reserved for future background refresh behavior. |
+| `stackDiscovery.lazyFirstPassMaxPrs` | number | In **lazy** mode, first-pass cap unless **`NUGIT_STACK_DISCOVERY_FULL=1`** or **`nugit stack list --full`**. |
+
+Env overrides: `NUGIT_STACK_DISCOVERY_MODE`, `NUGIT_STACK_DISCOVERY_MAX_OPEN_PRS`, `NUGIT_STACK_DISCOVERY_CONCURRENCY`, `NUGIT_STACK_DISCOVERY_BACKGROUND`.
+
+### `nugit split`
+
+Splits **one** PR (same-repo heads only in v1) into **K** layers: each layer is a new branch with a subset of changed files (one commit per layer), pushed and opened as a new PR chained on the previous base. The original PR gets an issue comment listing the new PRs; you close it manually. If the PR appears in **`.nugit/stack.json`**, that entry is replaced by the new PR chain. From **`nugit stack view`**, select the PR on the overview tab and press **`S`**.
+
 ## Validation rules
 
 - `prs` must have unique `pr_number` and unique `position` values.

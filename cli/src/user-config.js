@@ -27,7 +27,20 @@ export function getConfigPath() {
 }
 
 /**
- * @typedef {{ installRoot?: string, envFile?: string, workingDirectory?: string }} NugitUserConfig
+ * @typedef {{
+ *   mode?: string,
+ *   maxOpenPrs?: number,
+ *   fetchConcurrency?: number,
+ *   background?: boolean,
+ *   lazyFirstPassMaxPrs?: number
+ * }} StackDiscoveryConfig
+ *
+ * @typedef {{
+ *   installRoot?: string,
+ *   envFile?: string,
+ *   workingDirectory?: string,
+ *   stackDiscovery?: StackDiscoveryConfig
+ * }} NugitUserConfig
  */
 
 /**

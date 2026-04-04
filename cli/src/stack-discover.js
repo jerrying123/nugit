@@ -84,6 +84,37 @@ async function tryLoadStackDocAtRef(owner, repo, ref) {
 }
 
 /**
+ * If this is a propagated prefix, try to load the full tip stack doc.
+ * @param {string} owner
+ * @param {string} repo
+ * @param {Record<string, unknown>} doc
+ */
+async function maybeExpandPrefixDoc(owner, repo, doc) {
+  const layer = doc.layer && typeof doc.layer === "object" ? /** @type {Record<string, unknown>} */ (doc.layer) : null;
+  if (!layer) {
+    return doc;
+  }
+  const stackSize = layer.stack_size;
+  const prs = Array.isArray(doc.prs) ? doc.prs : [];
+  const tip = layer.tip && typeof layer.tip === "object" ? /** @type {Record<string, unknown>} */ (layer.tip) : null;
+  const tipHead = tip && typeof tip.head_branch === "string" ? tip.head_branch.trim() : "";
+  if (
+    typeof stackSize !== "number" ||
+    !Number.isFinite(stackSize) ||
+    stackSize <= prs.length ||
+    !tipHead
+  ) {
+    return doc;
+  }
+  const full = await tryLoadStackDocAtRef(owner, repo, tipHead);
+  if (!full) {
+    return doc;
+  }
+  const fullPrs = Array.isArray(full.prs) ? full.prs : [];
+  return fullPrs.length > prs.length ? full : doc;
+}
+
+/**
  * Scan open PRs; any head with committed `.nugit/stack.json` counts. Deduplicate by stack tip PR # (layer.tip or top of prs).
  *
  * @param {string} owner
@@ -92,7 +123,8 @@ async function tryLoadStackDocAtRef(owner, repo, ref) {
  *   maxOpenPrs?: number,
  *   listPerPage?: number,
  *   enrich?: boolean,
- *   fetchConcurrency?: number
+ *   fetchConcurrency?: number,
+ *   onProgress?: (msg: string) => void
  * }} [opts]
  */
 export async function discoverStacksInRepo(owner, repo, opts = {}) {
@@ -100,6 +132,7 @@ export async function discoverStacksInRepo(owner, repo, opts = {}) {
   const listPerPage = Math.min(100, Math.max(1, opts.listPerPage ?? 100));
   const fetchConc = Math.max(1, Math.min(32, opts.fetchConcurrency ?? 8));
   const enrich = opts.enrich !== false;
+  const onProgress = typeof opts.onProgress === "function" ? opts.onProgress : null;
 
   /** @type {unknown[]} */
   const allPulls = [];
@@ -124,6 +157,9 @@ export async function discoverStacksInRepo(owner, repo, opts = {}) {
     if (truncated) {
       break;
     }
+    if (onProgress) {
+      onProgress(`listed open PRs: ${allPulls.length}`);
+    }
     if (pulls.length < listPerPage) {
       break;
     }
@@ -133,6 +169,7 @@ export async function discoverStacksInRepo(owner, repo, opts = {}) {
   /** @type {({ doc: Record<string, unknown>, discoveredFromPr: number, headRef: string } | null)[]} */
   const rowSlots = Array(allPulls.length).fill(null);
 
+  let checkedHeads = 0;
   await forEachPool(allPulls, fetchConc, async (pull, i) => {
     const p = pull && typeof pull === "object" ? /** @type {Record<string, unknown>} */ (pull) : {};
     const head = p.head && typeof p.head === "object" ? /** @type {Record<string, unknown>} */ (p.head) : {};
@@ -142,6 +179,10 @@ export async function discoverStacksInRepo(owner, repo, opts = {}) {
       return;
     }
     const doc = await tryLoadStackDocAtRef(owner, repo, ref);
+    checkedHeads += 1;
+    if (onProgress && (checkedHeads % 10 === 0 || checkedHeads === allPulls.length)) {
+      onProgress(`checked stack.json on PR heads: ${checkedHeads}/${allPulls.length}`);
+    }
     if (!doc) {
       return;
     }
@@ -156,16 +197,17 @@ export async function discoverStacksInRepo(owner, repo, opts = {}) {
     if (!row) {
       continue;
     }
-    const tip = stackTipPrNumber(row.doc);
+    const expandedDoc = await maybeExpandPrefixDoc(owner, repo, row.doc);
+    const tip = stackTipPrNumber(expandedDoc);
     if (tip == null) {
       continue;
     }
     const prev = byTip.get(tip);
-    const score = Array.isArray(row.doc.prs) ? row.doc.prs.length : 0;
+    const score = Array.isArray(expandedDoc.prs) ? expandedDoc.prs.length : 0;
     const prevScore = prev ? (Array.isArray(prev.doc.prs) ? prev.doc.prs.length : 0) : -1;
     if (!prev || score > prevScore || (score === prevScore && row.discoveredFromPr === tip)) {
       byTip.set(tip, {
-        doc: row.doc,
+        doc: expandedDoc,
         discoveredFromPr: row.discoveredFromPr,
         headRef: row.headRef
       });
@@ -196,6 +238,9 @@ export async function discoverStacksInRepo(owner, repo, opts = {}) {
     });
 
     if (enrich) {
+      if (onProgress) {
+        onProgress(`loading PR titles for stack tip #${tipPr}`);
+      }
       await forEachPool(prRows, fetchConc, async (row) => {
         try {
           const g = await getPull(owner, repo, row.pr_number);

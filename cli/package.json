@@ -1,10 +1,18 @@
 {
   "name": "nugit-cli",
   "version": "0.1.0",
-  "private": true,
+  "description": "CLI for stacked GitHub PRs (.nugit/stack.json)",
   "type": "module",
   "bin": {
     "nugit": "./src/nugit.js"
+  },
+  "files": [
+    "src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jerrying123/nugit.git",
+    "directory": "cli"
   },
   "scripts": {
     "test": "vitest run"

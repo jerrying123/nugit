@@ -38,7 +38,12 @@ nugit prs create --head my-branch --title "My PR"
 nugit stack add --pr 7 8 9
 nugit stack propagate --push
 nugit stack view
+nugit split --pr 42        # TUI: assign changed files to layers → branches + GitHub PRs
 ```
+
+**`nugit start`** (TTY, after `nugit config init`): short hub — **stack view**, **split a PR**, or **shell**. Use **`nugit start --shell`** or **`nugit start -c 'cmd'`** to skip the menu. Non-TTY **`nugit start`** still opens the shell directly.
+
+**Stack discovery:** **`nugit stack list`** respects **`stackDiscovery`** in **`~/.config/nugit/config.json`** (or env). **`nugit stack index`** writes **`.nugit/stack-index.json`**; **`nugit stack graph`** merges index + **`.nugit/stack-history.jsonl`**. See **`docs/nugit-format.md`**.
 
 **Auth:** A **PAT** in **`NUGIT_USER_TOKEN`** is enough — **no OAuth App required**. Optional **device flow**: set **`GITHUB_OAUTH_CLIENT_ID`**, run **`nugit auth login`** (opens browser, then saves **`~/.config/nugit/github-token`**). Env vars override that file. **`nugit auth logout`** deletes the file.
 
@@ -67,6 +72,14 @@ Local review progress: **`.nugit/review-state.json`** (optional: add to your pro
 cd cli && npm install && npm test
 cd vscode-plugin && npm install && npm test
 ```
+
+**CI:** pushes and pull requests that touch `cli/` run **`CLI tests`** (`.github/workflows/cli-ci.yml`).
+
+## Publishing the CLI to npm
+
+1. Ensure the repository secret **`NPM_TOKEN`** is set (npm automation access token with publish permission).
+2. Create a **GitHub Release** and publish it (not a draft). Use a tag named **`vMAJOR.MINOR.PATCH`** (for example **`v0.2.0`**).
+3. The workflow **Publish CLI to npm** runs tests, sets `cli/package.json` **`version`** from the tag (without the leading **`v`**), and runs **`npm publish`** for the **`nugit-cli`** package.
 
 ## End-to-end (GitHub token)
 

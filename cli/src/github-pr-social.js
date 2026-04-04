@@ -113,3 +113,14 @@ export async function githubPostRequestedReviewers(owner, repo, pullNumber, revi
     payload
   );
 }
+
+/**
+ * List users assignable in this repo (good reviewer candidates).
+ * @param {string} owner
+ * @param {string} repo
+ */
+export async function githubListAssignableUsers(owner, repo) {
+  const o = encodeURIComponent(owner);
+  const r = encodeURIComponent(repo);
+  return githubGetAllPages(`/repos/${o}/${r}/assignees`);
+}
