@@ -73,7 +73,7 @@ Releases use **`.github/workflows/publish-npm.yml`** (filename must match what y
 1. **Trusted publishing (recommended):** On [npm](https://www.npmjs.com/) → **`nugit-cli`** → **Settings** → **Trusted publishing**, connect **GitHub Actions** to this repository and set the workflow filename to **`publish-npm.yml`** (exact name, including **`.yml`**). The workflow requests **`id-token: write`** and uses **Node ≥ 22.14** and **npm ≥ 11.5.1** so the CLI can publish via **OIDC** without a long-lived publish token. See [Trusted publishing](https://docs.npmjs.com/trusted-publishers).
 2. **Optional fallback:** Keep the **`NPM_TOKEN`** repository secret (e.g. a **Classic** **Automation** token). npm tries **OIDC first**, then falls back to **`NODE_AUTH_TOKEN`**. If you rely only on trusted publishing, you can clear **`NPM_TOKEN`** later; use an **Automation** token (not a normal publish token + 2FA) if you keep it, or **`EOTP`** can break CI.
 3. Create a **GitHub Release** and publish it (not a draft). Use a tag **`vMAJOR.MINOR.PATCH`** (for example **`v0.2.0`**).
-4. The workflow runs tests, sets **`cli/package.json`** **`version`** from the tag (without the leading **`v`**), and runs **`npm publish`**.
+4. The workflow runs tests, sets **`cli/package.json`** **`version`** from the tag (without the leading **`v`**), and runs **`npm publish`**. **Prerelease** tags (for example **`v1.0.0-beta.1`**) are published with **`npm publish --tag next`** so they do not overwrite **`latest`**.
 
 If publish still fails, run **`cd cli && npm pkg fix`** locally and commit any **`package.json`** changes npm suggests. Ensure **`cli/package.json`** **`repository.url`** matches this GitHub repo (npm checks that for GitHub trusted publishing).
 
