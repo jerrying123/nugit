@@ -1,0 +1,14 @@
+---
+description: Default product scope for nugit — read supported workflows and next steps
+alwaysApply: true
+---
+
+# Nugit CLI — default context
+
+When working in this repository:
+
+1. **Product scope** — Treat `docs/supported-workflows.md` as the source of truth for **what flows and commands are supported**, what is out of scope, and auth expectations (CLI-only, `nugit view`, `nugit start`, `nugit split`, stack file workflow).
+
+2. **Maintainer queue** — Use `docs/NEXT-STEPS.md` for **what to do next**: manual verification order, pruning gates, and release tasks. Prefer aligning implementation and docs with those steps rather than expanding scope unless the user asks.
+
+3. **Do not** reintroduce removed surfaces (e.g. `nugit stack view`, docker-compose as a product requirement) without an explicit user decision and an update to `docs/supported-workflows.md`.

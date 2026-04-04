@@ -1,86 +1,79 @@
-# Nugit — next steps & remaining work
+# Nugit — next steps & tracking
 
-Living checklist for **manual verification**, **workflow scope**, and **follow-up work**. Update this file as you complete items or change priorities.
+**Source of truth for product scope:** [supported-workflows.md](./supported-workflows.md) — what the CLI supports, out-of-scope items, and auth paths.
 
----
-
-## 1. Manual testing (not done yet)
-
-Use **`jerrying123/test-repo`** or your own fork; see [test-repo README](https://github.com/jerrying123/test-repo) and [stack-view.md](./stack-view.md).
-
-| # | Task | Notes |
-|---|------|--------|
-| ☐ | **`nugit split`** end-to-end | Clean working tree, same-repo PR (no fork v1). TUI → branches → push → new PRs → comment on old PR → local `stack.json` + history. Try **`--dry-run`** first. |
-| ☐ | **Stack discovery** | **`nugit stack list`**, **`stack index`**, **`stack graph`** (with/without **`--live`**); config **`stackDiscovery`** modes (**eager** / **lazy** / **manual**). |
-| ☐ | **`nugit stack propagate --push`** | On a small test stack; confirm **`layer`** / prefix **`prs`** on each head. |
-| ☐ | **`nugit start`** hub (TTY) | Menu: **`nugit view`** (search / cwd remote) / split / shell; **`--shell`** and **`-c`** skip menu. |
-| ☐ | **`nugit view` on a public repo** that actually uses nugit | e.g. **`nugit view --repo jerrying123/test-repo --ref demo/todo-2-nicegui`** (or tip branch with real **`prs[]`** once PRs exist). Confirm discovery + TUI with **no clone**; try **with** and **without** **`NUGIT_USER_TOKEN`** (rate limits without token). |
-| ☐ | **`nugit view` CLI** | Smoke-test **`--no-tui`**, **`--file`**, **`--repo`/`--ref`**, bare **`nugit view`** (TTY picker). |
-| ☐ | **GitHub Actions publish** | Release tag → npm (trusted publisher + optional **`NPM_TOKEN`** fallback); prerelease **`--tag next`** if applicable. |
+This file is the **ordered tracker**: what to verify next, what to prune after that, and release follow-ups. Update checkboxes and **Current focus** as you go.
 
 ---
 
-## 2. Decide supported workflows (before pruning)
+## Current focus
 
-**Goal:** List the **user journeys** you commit to supporting so unused code paths can be removed safely.
+*Edit this block to the single next thing you’re doing (owner + optional date).*
 
-Fill in below (edit this file). Examples of “workflow” = one bullet each:
-
-- [ ] **Example:** “Solo dev: local `stack.json`, `stack add`, `propagate`, no `stack list` discovery”
-- [ ] **Example:** “Open-source observer: `view --repo public/repo --ref` only, no writes”
-- [ ] **Example:** “Full stack: discovery + `nugit view` + `split` + `start` hub + npm-installed CLI”
-- [ ] **Example:** “CI-only: JSON output, no Ink TUI”
-
-**Workflows we explicitly do *not* support (candidates for removal later):**
-
-- [ ] e.g. device-flow auth only / no PAT
-- [ ] e.g. fork-PR split
-- [ ] (add yours)
-
-**Out of scope for now (keep code but don’t document as primary):**
-
-- (optional section)
+| | |
+|--|--|
+| **Now** | *(e.g. Manual pass: `nugit split` e2e on test-repo)* |
+| **Then** | *(e.g. Stack discovery modes + `stack graph --live`)* |
+| **Blocked on** | *(optional)* |
 
 ---
 
-## 3. Prune the codebase (after §2 is agreed)
+## Phase 1 — Verify supported workflows
 
-Only after supported workflows are written down:
+Goal: each **user journey** in [supported-workflows.md](./supported-workflows.md) has been exercised at least once on a real or sandbox repo (**[jerrying123/test-repo](https://github.com/jerrying123/test-repo)** or your fork). See [stack-view.md](./stack-view.md) and [github-app-and-test-repo.md](./github-app-and-test-repo.md) for auth.
 
-| # | Task |
-|---|------|
-| ☐ | Map CLI commands / modules to each supported workflow; mark orphans. |
-| ☐ | Remove or gate dead code (feature flags, smaller entrypoints, or delete modules). |
-| ☐ | Trim docs that describe removed paths; keep one “supported workflows” page. |
-| ☐ | Run **`cd cli && npm test`** and a manual smoke pass on **each** remaining workflow. |
-
----
-
-## 4. After testing + pruning
-
-| # | Task |
-|---|------|
-| ☐ | Bump **`nugit-cli`** version and publish if behavior is stable. |
-| ☐ | Align **test-repo** README with what you actually verified. |
-| ☐ | Optional: tighten **npm “Publishing access”** (tokens disallowed) once trusted publishing is proven. |
-| ☐ | Optional: issue templates / **CONTRIBUTING.md** pointing at **`docs/NEXT-STEPS.md`** for maintainers. |
+| Step | Journey (see supported doc) | Task | Done |
+|------|----------------------------|------|:----:|
+| 1.1 | §2 Stack in clone | **`nugit split`** end-to-end: clean tree, **same-repo** PR, TUI → branches → push → new PRs → local **`stack.json`** + history. Try **`--dry-run`** first. | ☐ |
+| 1.2 | §6 Discovery | **`nugit stack list`**, **`stack index`**, **`stack graph`** (with/without **`--live`**); **`stackDiscovery`** **eager** / **lazy** / **manual**. | ☐ |
+| 1.3 | §2 Propagate | **`nugit stack propagate --push`** on a small stack; confirm **`layer`** and prefix **`prs`** on each head. | ☐ |
+| 1.4 | §4 Start hub | **`nugit start`** (TTY): **`nugit view`** path, split, shell; **`--shell`** / **`-c`** skip menu. | ☐ |
+| 1.5 | §3 View (remote) | **`nugit view`** on a **public** repo that uses nugit, e.g. **`nugit view --repo jerrying123/test-repo --ref …`**. With and **without** token (rate limits). | ☐ |
+| 1.6 | §3 View (CLI + picker) | Smoke: **`--no-tui`**, **`--file`**, **`--repo`/`--ref`**, **`owner/repo`**, bare **`nugit view`** (TTY picker: **`[c]`** / search). | ☐ |
+| 1.7 | §1 Auth | Fresh machine: **`npm install -g nugit-cli`** (or local **`cli/`**), **`nugit auth login`** only (no **`GITHUB_OAUTH_CLIENT_ID`**). Optional: PAT path still works. | ☐ |
+| 1.8 | §5 Split → init | Split a PR in a repo **without** existing **`.nugit/stack.json`**; confirm **`stack.json`** appears with new PRs after success. | ☐ |
+| 1.9 | Publish | **GitHub Release** → npm via [publish-npm.yml](../.github/workflows/publish-npm.yml); trusted publisher + optional **`NPM_TOKEN`**; prerelease **`--tag next`** if needed. | ☐ |
 
 ---
 
-## Quick command reference (for §1)
+## Phase 2 — Prune after verification
+
+Only after Phase 1 is **good enough** for the journeys you care about (or explicitly deferred):
+
+| Step | Task | Done |
+|------|------|:----:|
+| 2.1 | Map **`cli/src`** modules to [supported-workflows.md](./supported-workflows.md) journeys; list orphans. | ☐ |
+| 2.2 | Remove or gate dead code (flags, entrypoints, or delete modules). | ☐ |
+| 2.3 | Trim docs that describe removed paths; keep **supported-workflows.md** accurate. | ☐ |
+| 2.4 | **`cd cli && npm test`** + one manual smoke per **supported** journey still in the doc. | ☐ |
+
+---
+
+## Phase 3 — After testing + pruning
+
+| Step | Task | Done |
+|------|------|:----:|
+| 3.1 | Bump **`nugit-cli`** version and publish when behavior is stable. | ☐ |
+| 3.2 | Align **[test-repo README](https://github.com/jerrying123/test-repo)** (or your sandbox) with what you verified. | ☐ |
+| 3.3 | Optional: npm **Publishing access** / tokens policy once OIDC is proven. | ☐ |
+| 3.4 | Optional: issue templates / **CONTRIBUTING.md** linking **supported-workflows.md** + **NEXT-STEPS.md**. | ☐ |
+
+---
+
+## Quick command reference (Phase 1)
 
 ```bash
-# Public read-only view (no clone; token optional)
+# Public read-only view (token optional; low limits if omitted)
 nugit view --repo jerrying123/test-repo --ref demo/todo-2-nicegui
 
-# Split (needs clone + clean tree + token)
+# Split (clone + clean tree + auth)
 nugit split --pr <N>              # or from nugit view: S on a PR
 nugit split --pr <N> --dry-run
 
-# Help
 nugit view --help
+nugit auth login
 ```
 
 ---
 
-*Last created as a maintainer checklist; reorder or split into GitHub Issues when ready.*
+*Reorder rows or split into GitHub Issues when the tracker outgrows this file.*

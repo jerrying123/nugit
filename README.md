@@ -13,7 +13,8 @@ The **VS Code extension**, **FastAPI backend**, **Chrome extension**, and **Next
 |------|---------|
 | `cli/` | `nugit` CLI (`npm install` in `cli/`) |
 | `docs/nugit-format.md` | `.nugit/stack.json` schema |
-| `docs/NEXT-STEPS.md` | Maintainer checklist: manual tests, workflow scope, pruning, follow-ups |
+| `docs/supported-workflows.md` | **Product scope:** supported CLI journeys, auth, out-of-scope (default context for agents) |
+| `docs/NEXT-STEPS.md` | **Tracker:** verify → prune → release (ordered checklist) |
 | `docs/stack-view.md` | **`nugit view`** TUI + auth (`nugit auth login` / PAT) |
 | `docs/github-app-and-test-repo.md` | Auth (`nugit auth login`, PAT), [example sandbox repo](https://github.com/jerrying123/test-repo) |
 | `scripts/nugit` | PATH wrapper to run the CLI |
