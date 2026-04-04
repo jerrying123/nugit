@@ -37,8 +37,9 @@ export async function githubRestJson(method, path, jsonBody, tokenOverride) {
 
   if (!token && !allowUnauthenticatedGet) {
     throw new Error(
-      "Set NUGIT_USER_TOKEN or STACKPR_USER_TOKEN (GitHub PAT or OAuth token). " +
-        "Read-only use of public repos can omit the token for GET requests (strict rate limits); set NUGIT_GITHUB_UNAUTHENTICATED=0 to disable that."
+      "GitHub authentication required for this request. Run `nugit auth login` or `nugit auth pat --token …`, " +
+        "or set NUGIT_USER_TOKEN / STACKPR_USER_TOKEN. " +
+        "Some read-only public GETs work without a token (low rate limits); set NUGIT_GITHUB_UNAUTHENTICATED=0 to disable that."
     );
   }
   const headers = {
@@ -173,6 +174,23 @@ export async function githubListUserRepos(page = 1) {
  * @param {number} [perPage] max 100
  * @param {number} [page] 1-based
  */
+/**
+ * GitHub repository search (`q` uses GitHub search syntax, e.g. `todo language:python` or `user:orgname`).
+ * @param {string} q
+ * @param {number} [perPage]
+ * @param {number} [page]
+ */
+export async function githubSearchRepositories(q, perPage = 20, page = 1) {
+  const pp = Math.min(100, Math.max(1, perPage));
+  const p = Math.max(1, page);
+  const query = new URLSearchParams({
+    q,
+    per_page: String(pp),
+    page: String(p)
+  });
+  return githubRestJson("GET", `/search/repositories?${query.toString()}`);
+}
+
 export async function githubSearchIssues(q, perPage = 30, page = 1) {
   const pp = Math.min(100, Math.max(1, perPage));
   const p = Math.max(1, page);

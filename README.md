@@ -3,7 +3,7 @@
 Monorepo for **stacked pull requests** using a **local-first** file:
 
 - **`.nugit/stack.json`** — ordered `prs[]`; on each stacked branch, **`nugit stack propagate`** writes a **prefix** plus **`layer`** / **`layer.tip`** so the stack is self-describing on GitHub.
-- **`cli/`** — **`nugit`** talks to **api.github.com** only (PAT or OAuth device flow). No bundled server.
+- **`cli/`** — **`nugit`** talks to **api.github.com** only (**`nugit auth login`** OAuth device flow or a PAT). No bundled server.
 
 The **VS Code extension**, **FastAPI backend**, **Chrome extension**, and **Next.js frontend** were removed from this repo; the workflow is **CLI-only**.
 
@@ -14,10 +14,9 @@ The **VS Code extension**, **FastAPI backend**, **Chrome extension**, and **Next
 | `cli/` | `nugit` CLI (`npm install` in `cli/`) |
 | `docs/nugit-format.md` | `.nugit/stack.json` schema |
 | `docs/NEXT-STEPS.md` | Maintainer checklist: manual tests, workflow scope, pruning, follow-ups |
-| `docs/stack-view.md` | Interactive `nugit stack view` + PAT scopes |
-| `docs/github-app-and-test-repo.md` | PAT, OAuth App client ID, [example sandbox repo](https://github.com/jerrying123/test-repo) |
+| `docs/stack-view.md` | **`nugit view`** TUI + auth (`nugit auth login` / PAT) |
+| `docs/github-app-and-test-repo.md` | Auth (`nugit auth login`, PAT), [example sandbox repo](https://github.com/jerrying123/test-repo) |
 | `scripts/nugit` | PATH wrapper to run the CLI |
-| `docker-compose.yml` | Optional **Redis** only (not required for the CLI) |
 
 ## Quick start (CLI)
 
@@ -28,7 +27,9 @@ cd cli && npm install
 export PATH="/path/to/nugit/scripts:$PATH"
 # or: nugit config init && nugit start
 
-export NUGIT_USER_TOKEN=ghp_...   # classic or fine-grained PAT (see docs/stack-view.md)
+# Auth: OAuth device flow (no env required — bundled app); optional: GITHUB_OAUTH_CLIENT_ID for your own OAuth App
+nugit auth login
+# or: export NUGIT_USER_TOKEN=ghp_...  (see docs/stack-view.md)
 
 nugit init
 nugit prs list                    # open PRs in repo (from git remote), paginated — pick # for stack
@@ -36,16 +37,17 @@ nugit prs list --mine             # only your PRs (search), same --page / --per-
 nugit prs create --head my-branch --title "My PR"
 nugit stack add --pr 7 8 9
 nugit stack propagate --push
-nugit stack view            # alias: nugit view
-nugit view --repo owner/repo --ref tip-branch   # TUI from GitHub; public repo readable without a token (low rate limits)
-nugit split --pr 42        # TUI: assign changed files to layers → branches + GitHub PRs
+nugit view                        # local stack, or TTY picker (search / current dir’s remote)
+nugit view owner/repo             # ref = GitHub default branch if omitted
+nugit view --repo owner/repo --ref tip-branch   # public repo: reads work without a token (low rate limits)
+nugit split --pr 42               # TUI: layers → branches + PRs; creates .nugit if missing
 ```
 
-**`nugit start`** (TTY, after `nugit config init`): short hub — **stack view**, **split a PR**, or **shell**. Use **`nugit start --shell`** or **`nugit start -c 'cmd'`** to skip the menu. Non-TTY **`nugit start`** still opens the shell directly.
+**`nugit start`** (TTY): hub — **`nugit view`** (repo search / cwd remote), **split a PR**, or **shell** (shell still needs **`nugit config init`**). Use **`nugit start --shell`** or **`nugit start -c 'cmd'`** to skip the menu. Non-TTY **`nugit start`** opens the shell directly.
 
 **Stack discovery:** **`nugit stack list`** respects **`stackDiscovery`** in **`~/.config/nugit/config.json`** (or env). **`nugit stack index`** writes **`.nugit/stack-index.json`**; **`nugit stack graph`** merges index + **`.nugit/stack-history.jsonl`**. See **`docs/nugit-format.md`**.
 
-**Auth:** A **PAT** in **`NUGIT_USER_TOKEN`** is enough — **no OAuth App required**. Optional **device flow**: set **`GITHUB_OAUTH_CLIENT_ID`**, run **`nugit auth login`** (opens browser, then saves **`~/.config/nugit/github-token`**). Env vars override that file. **`nugit auth logout`** deletes the file.
+**Auth:** **`nugit auth login`** runs GitHub’s device flow with a **bundled OAuth App client id** (no env setup). Set **`GITHUB_OAUTH_CLIENT_ID`** only if you use your own OAuth App. Alternatively set **`NUGIT_USER_TOKEN`** / **`STACKPR_USER_TOKEN`**. Saved token: **`~/.config/nugit/github-token`**. Env vars override that file. **`nugit auth logout`** deletes the file.
 
 **Human vs JSON output:** most commands print formatted text by default; add **`--json`** for machine-readable output.
 

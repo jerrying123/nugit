@@ -13,9 +13,9 @@ Use **`jerrying123/test-repo`** or your own fork; see [test-repo README](https:/
 | ☐ | **`nugit split`** end-to-end | Clean working tree, same-repo PR (no fork v1). TUI → branches → push → new PRs → comment on old PR → local `stack.json` + history. Try **`--dry-run`** first. |
 | ☐ | **Stack discovery** | **`nugit stack list`**, **`stack index`**, **`stack graph`** (with/without **`--live`**); config **`stackDiscovery`** modes (**eager** / **lazy** / **manual**). |
 | ☐ | **`nugit stack propagate --push`** | On a small test stack; confirm **`layer`** / prefix **`prs`** on each head. |
-| ☐ | **`nugit start`** hub (TTY) | Menu: stack view / split / shell; **`--shell`** and **`-c`** skip menu. |
-| ☐ | **Stack view on a public repo** that actually uses nugit | e.g. **`nugit view --repo jerrying123/test-repo --ref demo/todo-2-nicegui`** (or tip branch with real **`prs[]`** once PRs exist). Confirm discovery + TUI with **no clone**; try **with** and **without** **`NUGIT_USER_TOKEN`** (rate limits without token). |
-| ☐ | **`nugit view` alias** | Same flags as **`nugit stack view`**; smoke-test **`--no-tui`**, **`--file`**, **`--repo`/`--ref`**. |
+| ☐ | **`nugit start`** hub (TTY) | Menu: **`nugit view`** (search / cwd remote) / split / shell; **`--shell`** and **`-c`** skip menu. |
+| ☐ | **`nugit view` on a public repo** that actually uses nugit | e.g. **`nugit view --repo jerrying123/test-repo --ref demo/todo-2-nicegui`** (or tip branch with real **`prs[]`** once PRs exist). Confirm discovery + TUI with **no clone**; try **with** and **without** **`NUGIT_USER_TOKEN`** (rate limits without token). |
+| ☐ | **`nugit view` CLI** | Smoke-test **`--no-tui`**, **`--file`**, **`--repo`/`--ref`**, bare **`nugit view`** (TTY picker). |
 | ☐ | **GitHub Actions publish** | Release tag → npm (trusted publisher + optional **`NPM_TOKEN`** fallback); prerelease **`--tag next`** if applicable. |
 
 ---
@@ -28,7 +28,7 @@ Fill in below (edit this file). Examples of “workflow” = one bullet each:
 
 - [ ] **Example:** “Solo dev: local `stack.json`, `stack add`, `propagate`, no `stack list` discovery”
 - [ ] **Example:** “Open-source observer: `view --repo public/repo --ref` only, no writes”
-- [ ] **Example:** “Full stack: discovery + `stack view` + `split` + `start` hub + npm-installed CLI”
+- [ ] **Example:** “Full stack: discovery + `nugit view` + `split` + `start` hub + npm-installed CLI”
 - [ ] **Example:** “CI-only: JSON output, no Ink TUI”
 
 **Workflows we explicitly do *not* support (candidates for removal later):**
@@ -74,12 +74,11 @@ Only after supported workflows are written down:
 nugit view --repo jerrying123/test-repo --ref demo/todo-2-nicegui
 
 # Split (needs clone + clean tree + token)
-nugit split --pr <N>              # or from stack view: S on a PR
+nugit split --pr <N>              # or from nugit view: S on a PR
 nugit split --pr <N> --dry-run
 
-# Alias check
+# Help
 nugit view --help
-nugit stack view --help   # same options
 ```
 
 ---

@@ -406,7 +406,7 @@ export function StackInkApp({ rows, exitPayload }) {
   return React.createElement(
     Box,
     { flexDirection: "column", padding: 1 },
-    React.createElement(Text, { color: "cyan", bold: true }, "nugit stack view"),
+    React.createElement(Text, { color: "cyan", bold: true }, "nugit view"),
     React.createElement(Text, { dimColor: true }, ladder.join("\n")),
     React.createElement(Text, { color: "magenta" }, `Tab: ${tabName}`),
     React.createElement(

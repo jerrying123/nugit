@@ -29,7 +29,7 @@ import {
 } from "./nugit-stack.js";
 import { runStackPropagate } from "./stack-propagate.js";
 import { registerStackExtraCommands } from "./stack-extra-commands.js";
-import { runStackViewCommand } from "./stack-view/run-stack-view.js";
+import { runNugitViewEntry } from "./stack-view/run-view-entry.js";
 import {
   printJson,
   formatWhoamiHuman,
@@ -70,26 +70,6 @@ import {
 const program = new Command();
 program.name("nugit").description("Nugit CLI — stack state in .nugit/stack.json");
 
-/**
- * @param {import("commander").Command} cmd
- * @returns {import("commander").Command}
- */
-function withStackViewCliOptions(cmd) {
-  return cmd
-    .option("--no-tui", "Print stack + comment counts to stdout (no Ink UI)", false)
-    .option("--repo <owner/repo>", "With --ref: load stack from GitHub instead of local file")
-    .option("--ref <branch>", "Branch/sha for .nugit/stack.json on GitHub")
-    .option("--file <path>", "Path to stack.json (skip local .nugit lookup)")
-    .action(async (opts) => {
-      await runStackViewCommand({
-        noTui: opts.noTui,
-        repo: opts.repo,
-        ref: opts.ref,
-        file: opts.file
-      });
-    });
-}
-
 program
   .command("init")
   .description(
@@ -108,7 +88,9 @@ program
       const me = await authMe();
       user = me.login;
       if (!user) {
-        throw new Error("Could not resolve login; pass --user or set NUGIT_USER_TOKEN / STACKPR_USER_TOKEN");
+        throw new Error(
+          "Could not resolve login; pass --user or run `nugit auth login` / set NUGIT_USER_TOKEN"
+        );
       }
       console.error(`Using GitHub login: ${user}`);
     }
@@ -140,7 +122,7 @@ const auth = new Command("auth").description("GitHub authentication");
 auth
   .command("login")
   .description(
-    "OAuth device flow: opens browser (pre-filled code), waits for approval, saves token to ~/.config/nugit/github-token. Needs GITHUB_OAUTH_CLIENT_ID. Env NUGIT_USER_TOKEN still overrides the file."
+    "OAuth device flow: opens browser (pre-filled code), waits for approval, saves token to ~/.config/nugit/github-token. Uses bundled OAuth App client id unless GITHUB_OAUTH_CLIENT_ID is set. NUGIT_USER_TOKEN still overrides the saved file."
   )
   .option("--no-browser", "Do not launch a browser (open the printed URL yourself)", false)
   .option(
@@ -353,7 +335,7 @@ program
   )
   .option(
     "--shell",
-    "Open the configured shell immediately (skip the TTY hub menu: stack view / split / shell)",
+    "Open the configured shell immediately (skip the TTY hub menu: view / split / shell)",
     false
   )
   .action(async (opts) => {
@@ -398,13 +380,20 @@ program
     });
   });
 
-withStackViewCliOptions(
-  program
-    .command("view")
-    .description(
-      "Shorthand for `nugit stack view` — interactive stack TUI (or `--no-tui`). Use `--repo owner/repo --ref branch` to browse a public repo without cloning."
-    )
-);
+program
+  .command("view")
+  .description(
+    "Interactive stack viewer (GitHub). Pass owner/repo and optional ref, or run with no args on a TTY to search/pick a repo (and [c] for this directory’s remote)."
+  )
+  .argument("[repo]", "owner/repo")
+  .argument("[ref]", "branch or sha (default: GitHub default branch)")
+  .option("--no-tui", "Print stack + comment counts to stdout (no Ink UI)", false)
+  .option("--repo <owner/repo>", "Same as [repo] (for scripts)")
+  .option("--ref <branch>", "Same as [ref]")
+  .option("--file <path>", "Load stack.json from this path")
+  .action(async (repoArg, refArg, opts) => {
+    await runNugitViewEntry(repoArg, refArg, opts);
+  });
 
 program
   .command("env")
@@ -786,14 +775,6 @@ function addPropagateOptions(cmd) {
       false
     );
 }
-
-withStackViewCliOptions(
-  stack
-    .command("view")
-    .description(
-      "Interactive stack viewer (GitHub API): PR chain, comments, open links, reply, request reviewers"
-    )
-);
 
 addPropagateOptions(
   stack

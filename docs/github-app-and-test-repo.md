@@ -1,10 +1,25 @@
-# PAT, OAuth App, and `test-repo/` sandbox
+# GitHub auth (OAuth preferred), PAT alternative, and `test-repo/` sandbox
 
 The **nugit CLI** uses **GitHub’s REST API** directly. There is **no** bundled HTTP API in this repo.
 
-## Personal access token (PAT)
+## Recommended: `nugit auth login` (bundled OAuth App)
 
-You **do not** need an OAuth App if you use a PAT.
+The published CLI ships with a **public OAuth App client id** so you can run **`nugit auth login`** immediately after **`npm install`**—no env vars required.
+
+1. Run **`nugit auth login`**:
+   - Opens your browser (GitHub device page with the code pre-filled when possible).
+   - Waits until you approve in the browser.
+   - Saves the token to **`~/.config/nugit/github-token`** (mode `0600`). Next `nugit` commands use it automatically unless env vars override.
+
+Split flow (e.g. SSH without a browser on the same machine): **`nugit auth login --no-wait`**, then **`nugit auth poll --device-code …`** on a machine that can reach GitHub.
+
+Remove the saved file: **`nugit auth logout`** (does not unset env vars).
+
+**Own OAuth App:** set **`GITHUB_OAUTH_CLIENT_ID`** to your app’s client id before `nugit auth login` if you do not want to use the bundled app (forks, policy, or GitHub Enterprise with a different registration).
+
+## Alternative: personal access token (PAT)
+
+If you prefer not to use OAuth:
 
 1. GitHub → **Settings → Developer settings → Personal access tokens** (classic or fine-grained).
 2. Scopes for stack workflows: see **[stack-view.md](./stack-view.md)** (repo, read/write PRs, issues, etc.).
@@ -14,25 +29,7 @@ You **do not** need an OAuth App if you use a PAT.
    # legacy alias:
    export STACKPR_USER_TOKEN=ghp_...
    ```
-   Or copy the token into **`~/.config/nugit/github-token`** yourself (same as `nugit auth login` writes). If **`NUGIT_USER_TOKEN`** / **`STACKPR_USER_TOKEN`** is set, it **overrides** that file.
-
-## OAuth App (device flow)
-
-Optional alternative to creating a PAT by hand. Requires a **GitHub OAuth App** only for the **Client ID** (device flow).
-
-1. GitHub → **Settings → Developer settings → OAuth Apps** → **New OAuth App**.
-2. Copy the **Client ID** into your environment:
-   ```bash
-   export GITHUB_OAUTH_CLIENT_ID=Iv1.xxxxx
-   ```
-3. Run **`nugit auth login`**:
-   - Opens your browser (GitHub device page with the code pre-filled when possible).
-   - Waits until you approve in the browser.
-   - Saves the token to **`~/.config/nugit/github-token`** (mode `0600`). Next `nugit` commands use it automatically unless env vars override.
-
-Split flow (e.g. SSH without a browser on the same machine): **`nugit auth login --no-wait`**, then **`nugit auth poll --device-code …`** on a machine that can reach GitHub.
-
-Remove the saved file: **`nugit auth logout`** (does not unset env vars).
+   Or **`nugit auth pat --token ghp_…`**. You can also copy the token into **`~/.config/nugit/github-token`** yourself (same as `nugit auth login` writes). If **`NUGIT_USER_TOKEN`** / **`STACKPR_USER_TOKEN`** is set, it **overrides** that file.
 
 ## `test-repo/` (local sandbox)
 
@@ -44,7 +41,7 @@ git init
 git remote add origin git@github.com:YOUR_USER/YOUR_REPO.git
 ```
 
-Then use **`nugit init`**, **`nugit prs create`**, **`nugit stack add`**, **`nugit stack propagate --push`** from that directory with **`NUGIT_USER_TOKEN`** set.
+Then use **`nugit init`**, **`nugit prs create`**, **`nugit stack add`**, **`nugit stack propagate --push`** from that directory after **`nugit auth login`** (or with **`NUGIT_USER_TOKEN`** set).
 
 Stack branching should be **linear** (each branch from the previous). See the root **README.md** and **`docs/nugit-format.md`**.
 

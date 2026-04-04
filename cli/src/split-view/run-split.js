@@ -1,8 +1,9 @@
 import React from "react";
 import { render } from "ink";
-import { getPull, createPullRequest } from "../api-client.js";
+import { authMe, getPull, createPullRequest } from "../api-client.js";
 import { githubPostIssueComment } from "../github-pr-social.js";
 import {
+  createInitialStackDoc,
   readStackFile,
   writeStackFile,
   validateStackDoc,
@@ -129,7 +130,7 @@ export async function runSplitCommand(ctx) {
 
   /** @type {Record<string, unknown> | null} */
   let docForHistory = null;
-  const doc = readStackFile(root);
+  let doc = readStackFile(root);
   if (doc) {
     validateStackDoc(doc);
     const idx = doc.prs.findIndex((p) => p.pr_number === prNumber);
@@ -151,7 +152,19 @@ export async function runSplitCommand(ctx) {
       );
     }
   } else {
-    console.error("No .nugit/stack.json — skipped local stack file update.");
+    const me = await authMe();
+    const login = me && typeof me.login === "string" ? me.login : "unknown";
+    doc = createInitialStackDoc(`${owner}/${repo}`, login);
+    doc.prs = [];
+    for (let i = 0; i < newPrNumbers.length; i++) {
+      const p2 = await getPull(owner, repo, newPrNumbers[i]);
+      doc.prs.push(stackEntryFromGithubPull(p2, i));
+    }
+    writeStackFile(root, doc);
+    docForHistory = doc;
+    console.error(
+      `Created .nugit/stack.json with ${newPrNumbers.length} PR(s) from this split (repo had no stack file).`
+    );
   }
 
   appendStackHistory(root, {

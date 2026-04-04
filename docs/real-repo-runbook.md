@@ -1,6 +1,6 @@
 # Real repository checklist (CLI + VS Code)
 
-1. **Token:** `export NUGIT_USER_TOKEN=…` (see [stack-view.md](./stack-view.md) for scopes).
+1. **Auth:** **`nugit auth login`** (bundled device flow), or `export NUGIT_USER_TOKEN=…` (see [stack-view.md](./stack-view.md)).
 2. **Clone** your app repo; ensure **stacked branches** are linear (`feat/1` → `feat/2` → `feat/3`).
 3. **CLI:**
    ```bash

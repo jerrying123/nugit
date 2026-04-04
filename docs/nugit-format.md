@@ -8,7 +8,7 @@ Stack definitions live in the repository under **`.nugit/`** so the **CLI** and 
 - **Encoding**: UTF-8 JSON
 - **Committing**: Authors commit and push changes like any other config; merge conflicts are resolved in git.
 
-**Discovering stacks in a repo:** **`nugit stack list`** loads open PRs, fetches **`.nugit/stack.json`** from each PR’s **head ref** when present, and merges duplicates using the stack **tip** (`layer.tip.pr_number` when set, else the top `prs[]` entry). Use it to see which stacked chains exist for review; then **`nugit stack view --repo owner/repo --ref <tip-branch>`** (or **`stack fetch`**) for a specific stack.
+**Discovering stacks in a repo:** **`nugit stack list`** loads open PRs, fetches **`.nugit/stack.json`** from each PR’s **head ref** when present, and merges duplicates using the stack **tip** (`layer.tip.pr_number` when set, else the top `prs[]` entry). Use it to see which stacked chains exist for review; then **`nugit view --repo owner/repo --ref <tip-branch>`** (or **`stack fetch`**) for a specific stack.
 
 ## Schema version
 
@@ -137,7 +137,7 @@ Append-only JSON lines. Each line is one record with at least:
 
 ### `.nugit/stack-index.json`
 
-Regeneratable cache written by **`nugit stack index`** or after a full discovery in **`nugit stack view`** (depending on **`stackDiscovery.mode`**). Holds merged discovery output (`stacks`, `repo_full_name`, etc.) for the repo. **`stackDiscovery.mode: manual`** expects this file to exist (run **`nugit stack index`** first) unless you pass **`--repo` / `--ref`**.
+Regeneratable cache written by **`nugit stack index`** or after a full discovery in **`nugit view`** (depending on **`stackDiscovery.mode`**). Holds merged discovery output (`stacks`, `repo_full_name`, etc.) for the repo. **`stackDiscovery.mode: manual`** expects this file to exist (run **`nugit stack index`** first) unless you pass **`--repo` / `--ref`**.
 
 ### `nugit stack graph`
 
@@ -147,7 +147,7 @@ Prints a compiled **node/edge** graph from the last index plus history (`nugit s
 
 | Key | Values | Meaning |
 |-----|--------|---------|
-| `stackDiscovery.mode` | `eager` \| `lazy` \| `manual` | How **`stack list`** / **`stack view`** load remote stacks. |
+| `stackDiscovery.mode` | `eager` \| `lazy` \| `manual` | How **`stack list`** / **`nugit view`** load remote stacks. |
 | `stackDiscovery.maxOpenPrs` | number | Cap on open PRs scanned. |
 | `stackDiscovery.fetchConcurrency` | number | Parallel fetches for `stack.json` on PR heads. |
 | `stackDiscovery.background` | bool | Reserved for future background refresh behavior. |
@@ -157,7 +157,7 @@ Env overrides: `NUGIT_STACK_DISCOVERY_MODE`, `NUGIT_STACK_DISCOVERY_MAX_OPEN_PRS
 
 ### `nugit split`
 
-Splits **one** PR (same-repo heads only in v1) into **K** layers: each layer is a new branch with a subset of changed files (one commit per layer), pushed and opened as a new PR chained on the previous base. The original PR gets an issue comment listing the new PRs; you close it manually. If the PR appears in **`.nugit/stack.json`**, that entry is replaced by the new PR chain. From **`nugit stack view`**, select the PR on the overview tab and press **`S`**.
+Splits **one** PR (same-repo heads only in v1) into **K** layers: each layer is a new branch with a subset of changed files (one commit per layer), pushed and opened as a new PR chained on the previous base. The original PR gets an issue comment listing the new PRs; you close it manually. If the PR appears in **`.nugit/stack.json`**, that entry is replaced by the new PR chain. From **`nugit view`**, select the PR on the overview tab and press **`S`**.
 
 ## Validation rules
 

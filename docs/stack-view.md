@@ -1,31 +1,37 @@
-# `nugit stack view` / `nugit view` — interactive stack viewer
-
-**`nugit view`** is a shorthand for **`nugit stack view`** (same flags).
+# `nugit view` — interactive stack viewer
 
 Terminal UI (or `--no-tui` text mode) for a nugit stack: PR chain, conversation comments, line-linked review comments, opening PRs/lines in the browser, posting issue comments, replying in review threads, and requesting reviewers.
 
-## Token and public repos
+There is **no** `nugit stack view` subcommand — use **`nugit view`** only.
 
-- **Posting** (issue comments, review replies, request reviewers) **requires** `NUGIT_USER_TOKEN` (or `STACKPR_USER_TOKEN` / saved device-flow token) with the scopes described below.
-- **Read-only browsing** of **public** repositories can work **without** a token: the CLI sends **unauthenticated `GET`** requests to the GitHub API (same data you can see on github.com). Rate limits are **much lower** (~60 requests/hour per IP). For everyday use, set a PAT anyway.
-- To **force** a token for every request (disable unauthenticated GETs), set **`NUGIT_GITHUB_UNAUTHENTICATED=0`**.
+## Auth (preferred: `nugit auth login`)
+
+- **Recommended:** run **`nugit auth login`**. The CLI uses a **bundled** GitHub OAuth App (device flow, browser) and stores the token in **`~/.config/nugit/github-token`**. Set **`GITHUB_OAUTH_CLIENT_ID`** only to use your own OAuth App instead. You do **not** need to create a fine-grained PAT by hand.
+- **Alternative:** **`nugit auth pat --token ghp_…`** or **`export NUGIT_USER_TOKEN=…`** (classic PAT with the scopes below).
+- **Posting** (issue comments, review replies, request reviewers) **requires** a token with write access (OAuth or PAT).
+- **Read-only** browsing of **public** repos can use **unauthenticated `GET`**s (very low rate limits). Set **`NUGIT_GITHUB_UNAUTHENTICATED=0`** to disable that and require a token for every request.
 
 ## Usage
 
 ```bash
-# Optional — recommended for rate limits and any write actions
-export NUGIT_USER_TOKEN=ghp_...   # or fine-grained PAT
+# Preferred sign-in (bundled OAuth App — no env required)
+nugit auth login
 
 # From a repo with .nugit/stack.json (prefix files auto-expand via layer.tip when possible)
-nugit stack view
-# same:
 nugit view
+
+# TTY with no local stack: search GitHub or [c] open this directory’s github.com remote
+nugit view
+
+# Positional args: ref defaults to the repo’s GitHub default branch
+nugit view owner/repo
+nugit view owner/repo my-feature-branch
+
+# Flags (same as positionals; useful in scripts)
+nugit view --repo owner/repo --ref my-branch
 
 # Static output (CI / scripts)
 nugit view --no-tui
-
-# No clone needed: load .nugit/stack.json from GitHub (public repo OK without token for reads)
-nugit view --repo owner/repo --ref my-branch
 
 # Arbitrary stack.json path
 nugit view --file /path/to/stack.json
@@ -48,18 +54,14 @@ nugit view --file /path/to/stack.json
 | `u` | Refresh PR rows from GitHub |
 | `q` / Esc | Quit |
 
-## PAT permissions
-
-### Classic personal access token (github.com)
+## PAT permissions (if you use a classic PAT instead of OAuth)
 
 | Need | Scope |
 |------|--------|
 | Private repos | **`repo`** |
 | Public repos only | **`public_repo`** (verify org policies) |
 
-Posting comments or requesting reviewers needs **write** access → typically **`repo`** on private repositories.
-
-### Fine-grained PAT
+### Fine-grained PAT (optional)
 
 | Repository permission | Why |
 |------------------------|-----|
@@ -67,13 +69,11 @@ Posting comments or requesting reviewers needs **write** access → typically **
 | **Issues: Read and write** | Issue (conversation) comments on the PR |
 | **Metadata: Read** | Always on |
 
-**Contents: Read** is optional for this viewer (links use `html_url`; no file blob fetch in MVP).
-
 ### Org / teams
 
 - Requesting **users** as reviewers works when those users can access the repo.
-- Requesting **teams** (`team_reviewers`) may require org permissions your token can see; if API errors, check team visibility and fine-grained token repository access.
+- Requesting **teams** may require org permissions your token can see.
 
 ## GitHub Enterprise Server
 
-Set **`GITHUB_API_URL`** to your instance API root (same as other `nugit` direct calls), e.g. `https://github.mycompany.com/api/v3`.
+Set **`GITHUB_API_URL`** to your instance API root, e.g. `https://github.mycompany.com/api/v3`.

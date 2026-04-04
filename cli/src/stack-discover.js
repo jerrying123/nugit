@@ -270,7 +270,7 @@ export async function discoverStacksInRepo(owner, repo, opts = {}) {
       prs: prRows,
       tip_head_branch: tipHeadBranch,
       fetch_command: `nugit stack fetch --repo ${repoFull} --ref ${tipHeadBranch}`,
-      view_command: `nugit stack view --repo ${repoFull} --ref ${tipHeadBranch}`
+      view_command: `nugit view --repo ${repoFull} --ref ${tipHeadBranch}`
     });
   }
 

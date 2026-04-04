@@ -1,5 +1,5 @@
 /**
- * GitHub OAuth device flow (no backend). Requires GITHUB_OAUTH_CLIENT_ID.
+ * GitHub OAuth device flow (no backend). Client id from resolveGithubOAuthClientId() (bundled default or GITHUB_OAUTH_CLIENT_ID).
  * @see https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow
  */
 

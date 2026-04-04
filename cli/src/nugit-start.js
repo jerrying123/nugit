@@ -179,14 +179,14 @@ export function runStart(opts) {
  */
 export async function runStartHub() {
   console.error("nugit start — choose:");
-  console.error("  1) Stack view");
+  console.error("  1) View stacks (`nugit view` — search GitHub or this directory’s remote)");
   console.error("  2) Split a PR");
-  console.error("  3) Open shell");
+  console.error("  3) Open shell (needs `nugit config init`)");
   const ans = (await questionLine("Enter 1–3 [3]: ")).trim();
   const choice = ans || "3";
   if (choice === "1") {
-    const { runStackViewCommand } = await import("./stack-view/run-stack-view.js");
-    await runStackViewCommand({});
+    const { runNugitViewEntry } = await import("./stack-view/run-view-entry.js");
+    await runNugitViewEntry(undefined, undefined, {});
     process.exit(0);
   }
   if (choice === "2") {

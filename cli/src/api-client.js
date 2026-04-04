@@ -7,6 +7,7 @@ import {
   githubListUserRepos,
   githubRestJson,
   githubSearchIssues,
+  githubSearchRepositories,
   githubListOpenPulls
 } from "./github-rest.js";
 import {
@@ -14,6 +15,7 @@ import {
   githubDeviceFlowRequestCode
 } from "./github-device-flow.js";
 import { resolveGithubToken } from "./auth-token.js";
+import { resolveGithubOAuthClientId } from "./github-oauth-client-id.js";
 
 /** @returns {string} */
 export function getToken() {
@@ -29,15 +31,10 @@ export function withAuthHeaders(headers = {}) {
 }
 
 /**
- * Start GitHub OAuth device flow (requires GITHUB_OAUTH_CLIENT_ID).
+ * Start GitHub OAuth device flow (bundled OAuth App client id; override with GITHUB_OAUTH_CLIENT_ID).
  */
 export async function startDeviceFlow() {
-  const clientId = process.env.GITHUB_OAUTH_CLIENT_ID;
-  if (!clientId) {
-    throw new Error(
-      "Set GITHUB_OAUTH_CLIENT_ID to your GitHub OAuth App client ID (Settings → Developer settings → OAuth Apps), or use a PAT with NUGIT_USER_TOKEN."
-    );
-  }
+  const clientId = resolveGithubOAuthClientId();
   return githubDeviceFlowRequestCode(clientId, "repo read:user user:email");
 }
 
@@ -47,10 +44,7 @@ export async function startDeviceFlow() {
  * @param {number} [intervalSeconds] minimum wait before next poll (from GitHub or prior slow_down)
  */
 export async function pollDeviceFlow(deviceCode, intervalSeconds = 5) {
-  const clientId = process.env.GITHUB_OAUTH_CLIENT_ID;
-  if (!clientId) {
-    throw new Error("Set GITHUB_OAUTH_CLIENT_ID");
-  }
+  const clientId = resolveGithubOAuthClientId();
   const payload = await githubDeviceFlowPollAccessToken(clientId, deviceCode);
   if (payload.access_token) {
     return { access_token: payload.access_token, token_type: payload.token_type, scope: payload.scope };
@@ -143,6 +137,11 @@ export async function authMe() {
 
 export async function getRepoMetadata(owner, repo) {
   return githubGetRepoMetadata(owner, repo);
+}
+
+/** @param {string} query GitHub `q` syntax for /search/repositories */
+export async function searchRepositories(query, perPage = 20, page = 1) {
+  return githubSearchRepositories(query, perPage, page);
 }
 
 export async function createPullRequest(owner, repo, fields) {
