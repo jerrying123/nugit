@@ -1,25 +1,34 @@
-# `nugit stack view` — interactive stack viewer
+# `nugit stack view` / `nugit view` — interactive stack viewer
+
+**`nugit view`** is a shorthand for **`nugit stack view`** (same flags).
 
 Terminal UI (or `--no-tui` text mode) for a nugit stack: PR chain, conversation comments, line-linked review comments, opening PRs/lines in the browser, posting issue comments, replying in review threads, and requesting reviewers.
 
-**Requires** `NUGIT_USER_TOKEN` (or `STACKPR_USER_TOKEN`) with GitHub API access.
+## Token and public repos
+
+- **Posting** (issue comments, review replies, request reviewers) **requires** `NUGIT_USER_TOKEN` (or `STACKPR_USER_TOKEN` / saved device-flow token) with the scopes described below.
+- **Read-only browsing** of **public** repositories can work **without** a token: the CLI sends **unauthenticated `GET`** requests to the GitHub API (same data you can see on github.com). Rate limits are **much lower** (~60 requests/hour per IP). For everyday use, set a PAT anyway.
+- To **force** a token for every request (disable unauthenticated GETs), set **`NUGIT_GITHUB_UNAUTHENTICATED=0`**.
 
 ## Usage
 
 ```bash
+# Optional — recommended for rate limits and any write actions
 export NUGIT_USER_TOKEN=ghp_...   # or fine-grained PAT
 
 # From a repo with .nugit/stack.json (prefix files auto-expand via layer.tip when possible)
 nugit stack view
+# same:
+nugit view
 
 # Static output (CI / scripts)
-nugit stack view --no-tui
+nugit view --no-tui
 
-# Load stack file from GitHub Contents API
-nugit stack view --repo owner/repo --ref my-branch
+# No clone needed: load .nugit/stack.json from GitHub (public repo OK without token for reads)
+nugit view --repo owner/repo --ref my-branch
 
 # Arbitrary stack.json path
-nugit stack view --file /path/to/stack.json
+nugit view --file /path/to/stack.json
 ```
 
 ## TUI keys

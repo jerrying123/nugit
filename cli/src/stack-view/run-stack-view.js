@@ -1,6 +1,7 @@
 import React from "react";
 import { render } from "ink";
 import chalk from "chalk";
+import { resolveGithubToken } from "../auth-token.js";
 import {
   githubListAssignableUsers,
   githubPostIssueComment,
@@ -153,6 +154,13 @@ async function promptReviewers(owner, repo, prNumber) {
  * @param {string} [opts.file]
  */
 export async function runStackViewCommand(opts) {
+  if (!resolveGithubToken()) {
+    console.error(
+      chalk.dim(
+        "No NUGIT_USER_TOKEN: using unauthenticated GitHub reads (low rate limit; public repos only for API data). Set a PAT for private repos, higher limits, or posting comments."
+      )
+    );
+  }
   const root = findGitRoot();
   let repo = opts.repo;
   let ref = opts.ref;

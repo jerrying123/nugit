@@ -26,16 +26,29 @@ export function useDirectGithub() {
  */
 export async function githubRestJson(method, path, jsonBody, tokenOverride) {
   const token = tokenOverride ?? getGithubPat();
-  if (!token) {
+  const methodUpper = String(method).toUpperCase();
+  const unauthDisabled =
+    process.env.NUGIT_GITHUB_UNAUTHENTICATED === "0" ||
+    process.env.NUGIT_GITHUB_UNAUTHENTICATED === "false";
+  const allowUnauthenticatedGet =
+    !unauthDisabled &&
+    !token &&
+    (methodUpper === "GET" || methodUpper === "HEAD");
+
+  if (!token && !allowUnauthenticatedGet) {
     throw new Error(
-      "Set NUGIT_USER_TOKEN or STACKPR_USER_TOKEN (GitHub PAT or OAuth token with repo scope)"
+      "Set NUGIT_USER_TOKEN or STACKPR_USER_TOKEN (GitHub PAT or OAuth token). " +
+        "Read-only use of public repos can omit the token for GET requests (strict rate limits); set NUGIT_GITHUB_UNAUTHENTICATED=0 to disable that."
     );
   }
   const headers = {
-    Authorization: `Bearer ${token}`,
     Accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28"
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "nugit-cli"
   };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   if (jsonBody !== undefined) {
     headers["Content-Type"] = "application/json";
   }

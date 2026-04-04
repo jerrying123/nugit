@@ -13,6 +13,7 @@ The **VS Code extension**, **FastAPI backend**, **Chrome extension**, and **Next
 |------|---------|
 | `cli/` | `nugit` CLI (`npm install` in `cli/`) |
 | `docs/nugit-format.md` | `.nugit/stack.json` schema |
+| `docs/NEXT-STEPS.md` | Maintainer checklist: manual tests, workflow scope, pruning, follow-ups |
 | `docs/stack-view.md` | Interactive `nugit stack view` + PAT scopes |
 | `docs/github-app-and-test-repo.md` | PAT, OAuth App client ID, [example sandbox repo](https://github.com/jerrying123/test-repo) |
 | `scripts/nugit` | PATH wrapper to run the CLI |
@@ -35,7 +36,8 @@ nugit prs list --mine             # only your PRs (search), same --page / --per-
 nugit prs create --head my-branch --title "My PR"
 nugit stack add --pr 7 8 9
 nugit stack propagate --push
-nugit stack view
+nugit stack view            # alias: nugit view
+nugit view --repo owner/repo --ref tip-branch   # TUI from GitHub; public repo readable without a token (low rate limits)
 nugit split --pr 42        # TUI: assign changed files to layers → branches + GitHub PRs
 ```
 

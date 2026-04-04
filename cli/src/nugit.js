@@ -70,6 +70,26 @@ import {
 const program = new Command();
 program.name("nugit").description("Nugit CLI — stack state in .nugit/stack.json");
 
+/**
+ * @param {import("commander").Command} cmd
+ * @returns {import("commander").Command}
+ */
+function withStackViewCliOptions(cmd) {
+  return cmd
+    .option("--no-tui", "Print stack + comment counts to stdout (no Ink UI)", false)
+    .option("--repo <owner/repo>", "With --ref: load stack from GitHub instead of local file")
+    .option("--ref <branch>", "Branch/sha for .nugit/stack.json on GitHub")
+    .option("--file <path>", "Path to stack.json (skip local .nugit lookup)")
+    .action(async (opts) => {
+      await runStackViewCommand({
+        noTui: opts.noTui,
+        repo: opts.repo,
+        ref: opts.ref,
+        file: opts.file
+      });
+    });
+}
+
 program
   .command("init")
   .description(
@@ -377,6 +397,14 @@ program
       remote: opts.remote
     });
   });
+
+withStackViewCliOptions(
+  program
+    .command("view")
+    .description(
+      "Shorthand for `nugit stack view` — interactive stack TUI (or `--no-tui`). Use `--repo owner/repo --ref branch` to browse a public repo without cloning."
+    )
+);
 
 program
   .command("env")
@@ -759,23 +787,13 @@ function addPropagateOptions(cmd) {
     );
 }
 
-stack
-  .command("view")
-  .description(
-    "Interactive stack viewer (GitHub API): PR chain, comments, open links, reply, request reviewers"
-  )
-  .option("--no-tui", "Print stack + comment counts to stdout (no Ink UI)", false)
-  .option("--repo <owner/repo>", "With --ref: load stack from GitHub instead of local file")
-  .option("--ref <branch>", "Branch/sha for .nugit/stack.json on GitHub")
-  .option("--file <path>", "Path to stack.json (skip local .nugit lookup)")
-  .action(async (opts) => {
-    await runStackViewCommand({
-      noTui: opts.noTui,
-      repo: opts.repo,
-      ref: opts.ref,
-      file: opts.file
-    });
-  });
+withStackViewCliOptions(
+  stack
+    .command("view")
+    .description(
+      "Interactive stack viewer (GitHub API): PR chain, comments, open links, reply, request reviewers"
+    )
+);
 
 addPropagateOptions(
   stack
