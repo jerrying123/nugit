@@ -16,7 +16,7 @@ The **FastAPI backend**, **Chrome extension**, and **Next.js frontend** were rem
 | `vscode-plugin/` | VS Code extension |
 | `docs/nugit-format.md` | `.nugit/stack.json` schema |
 | `docs/stack-view.md` | Interactive `nugit stack view` + PAT scopes |
-| `docs/github-app-and-test-repo.md` | PAT, OAuth App client ID, `test-repo/` sandbox |
+| `docs/github-app-and-test-repo.md` | PAT, OAuth App client ID, [example sandbox repo](https://github.com/jerrying123/test-repo) |
 | `scripts/nugit` | PATH wrapper to run the CLI |
 | `docker-compose.yml` | Optional **Redis** only (not required for the CLI) |
 
@@ -90,3 +90,5 @@ NUGIT_USER_TOKEN=<token> ./scripts/e2e-local.sh
 ## Local sandbox
 
 Use an ignored **`test-repo/`** folder as a separate git clone for experiments — see **`docs/github-app-and-test-repo.md`**.
+
+**Example stack demo on GitHub:** [jerrying123/test-repo](https://github.com/jerrying123/test-repo) (FastAPI + Postgres + NiceGUI todo app on branches **`demo/todo-*`**; see that repo’s README).

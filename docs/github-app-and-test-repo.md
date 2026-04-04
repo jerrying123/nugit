@@ -48,6 +48,8 @@ Then use **`nugit init`**, **`nugit prs create`**, **`nugit stack add`**, **`nug
 
 Stack branching should be **linear** (each branch from the previous). See the root **README.md** and **`docs/nugit-format.md`**.
 
+Example linear branches in this monorepo’s ignored **`test-repo/`** sandbox (when populated): **`demo/todo-0-postgres`** → **`demo/todo-1-api`** → **`demo/todo-2-nicegui`** (Postgres + FastAPI todo API + NiceGUI UI). See **`test-repo/README.md`** on those branches.
+
 ## VS Code extension
 
 The extension reads **`.nugit/stack.json`** from the workspace and calls **api.github.com** with a PAT from **secret storage** or **`NUGIT_USER_TOKEN`**. Optional **`GITHUB_OAUTH_CLIENT_ID`** in the environment enables **Nugit: Login** (device code instructions only; polling is still easiest from a terminal).
