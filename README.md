@@ -4,16 +4,14 @@ Monorepo for **stacked pull requests** using a **local-first** file:
 
 - **`.nugit/stack.json`** — ordered `prs[]`; on each stacked branch, **`nugit stack propagate`** writes a **prefix** plus **`layer`** / **`layer.tip`** so the stack is self-describing on GitHub.
 - **`cli/`** — **`nugit`** talks to **api.github.com** only (PAT or OAuth device flow). No bundled server.
-- **`vscode-plugin/`** — reads `.nugit/stack.json` and uses the **same GitHub REST** patterns (PAT from env or secret storage).
 
-The **FastAPI backend**, **Chrome extension**, and **Next.js frontend** were removed from this repo; workflows are **CLI + VS Code** only.
+The **VS Code extension**, **FastAPI backend**, **Chrome extension**, and **Next.js frontend** were removed from this repo; the workflow is **CLI-only**.
 
 ## Repo layout
 
 | Path | Purpose |
 |------|---------|
 | `cli/` | `nugit` CLI (`npm install` in `cli/`) |
-| `vscode-plugin/` | VS Code extension |
 | `docs/nugit-format.md` | `.nugit/stack.json` schema |
 | `docs/stack-view.md` | Interactive `nugit stack view` + PAT scopes |
 | `docs/github-app-and-test-repo.md` | PAT, OAuth App client ID, [example sandbox repo](https://github.com/jerrying123/test-repo) |
@@ -60,26 +58,24 @@ nugit split --pr 42        # TUI: assign changed files to layers → branches + 
 
 Local review progress: **`.nugit/review-state.json`** (optional: add to your project `.gitignore`).
 
-## VS Code
-
-1. Open `vscode-plugin/` → F5  
-2. **Nugit: Save PAT** (or set `NUGIT_USER_TOKEN` in the environment)  
-3. **Nugit: Load Local .nugit Stack** or **Nugit: Fetch stack.json from GitHub**
-
 ## Testing
 
 ```bash
 cd cli && npm install && npm test
-cd vscode-plugin && npm install && npm test
 ```
 
 **CI:** pushes and pull requests that touch `cli/` run **`CLI tests`** (`.github/workflows/cli-ci.yml`).
 
 ## Publishing the CLI to npm
 
-1. Ensure the repository secret **`NPM_TOKEN`** is set (npm automation access token with publish permission).
-2. Create a **GitHub Release** and publish it (not a draft). Use a tag named **`vMAJOR.MINOR.PATCH`** (for example **`v0.2.0`**).
-3. The workflow **Publish CLI to npm** runs tests, sets `cli/package.json` **`version`** from the tag (without the leading **`v`**), and runs **`npm publish`** for the **`nugit-cli`** package.
+Releases use **`.github/workflows/publish-npm.yml`** (filename must match what you configure on npm).
+
+1. **Trusted publishing (recommended):** On [npm](https://www.npmjs.com/) → **`nugit-cli`** → **Settings** → **Trusted publishing**, connect **GitHub Actions** to this repository and set the workflow filename to **`publish-npm.yml`** (exact name, including **`.yml`**). The workflow requests **`id-token: write`** and uses **Node ≥ 22.14** and **npm ≥ 11.5.1** so the CLI can publish via **OIDC** without a long-lived publish token. See [Trusted publishing](https://docs.npmjs.com/trusted-publishers).
+2. **Optional fallback:** Keep the **`NPM_TOKEN`** repository secret (e.g. a **Classic** **Automation** token). npm tries **OIDC first**, then falls back to **`NODE_AUTH_TOKEN`**. If you rely only on trusted publishing, you can clear **`NPM_TOKEN`** later; use an **Automation** token (not a normal publish token + 2FA) if you keep it, or **`EOTP`** can break CI.
+3. Create a **GitHub Release** and publish it (not a draft). Use a tag **`vMAJOR.MINOR.PATCH`** (for example **`v0.2.0`**).
+4. The workflow runs tests, sets **`cli/package.json`** **`version`** from the tag (without the leading **`v`**), and runs **`npm publish`**.
+
+If publish still fails, run **`cd cli && npm pkg fix`** locally and commit any **`package.json`** changes npm suggests. Ensure **`cli/package.json`** **`repository.url`** matches this GitHub repo (npm checks that for GitHub trusted publishing).
 
 ## End-to-end (GitHub token)
 
